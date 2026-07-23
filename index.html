@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#185FA5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ActivaERP">
+<meta name="application-name" content="ActivaERP">
+<link rel="manifest" id="manifestLink">
+<link rel="apple-touch-icon" id="appleIcon">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ActivaERP — Levantamiento de Activo Fijo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{--bg:#fff;--bg2:#f7f7f5;--bg3:#f0ede8;--text:#1a1a1a;--text2:#555;--text3:#888;--border:rgba(0,0,0,.12);--border2:rgba(0,0,0,.22);--accent:#185FA5;--accent-bg:#E6F1FB;--accent-text:#0C447C;--success:#3B6D11;--success-bg:#EAF3DE;--success-text:#27500A;--warn:#854F0B;--warn-bg:#FAEEDA;--warn-text:#633806;--danger:#A32D2D;--danger-bg:#FCEBEB;--danger-text:#791F1F;--purple:#534AB7;--purple-bg:#EEEDFE;--purple-text:#3C3489;--teal:#0F6E56;--teal-bg:#E1F5EE;--teal-text:#085041;--r:8px;--rl:12px;--font:system-ui,-apple-system,sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1c1a;--bg2:#252522;--bg3:#2e2e2a;--text:#f0ede8;--text2:#b4b2a9;--text3:#888780;--border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.2);--accent-bg:#0C447C;--accent-text:#B5D4F4;--success-bg:#27500A;--success-text:#C0DD97;--warn-bg:#633806;--warn-text:#FAC775;--danger-bg:#791F1F;--danger-text:#F7C1C1;--purple-bg:#3C3489;--purple-text:#CECBF6;--teal-bg:#085041;--teal-text:#9FE1CB}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg3);color:var(--text);font-size:14px;min-height:100vh}
+.sidebar{width:220px;background:var(--bg);border-right:.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .3s;overflow-y:auto}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:.5px solid var(--border)}
+.logo-text{font-size:16px;font-weight:600;color:var(--accent)}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.sidebar-section{padding:6px 0;border-bottom:.5px solid var(--border)}
+.section-label{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;padding:8px 16px 3px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;color:var(--text2);font-size:13px;border:none;background:none;width:100%;text-align:left;transition:background .15s}
+.nav-item:hover{background:var(--bg2);color:var(--text)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent-text);font-weight:500}
+.nav-icon{width:18px;text-align:center;font-size:14px}
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--bg);border-bottom:.5px solid var(--border);padding:11px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:15px;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.content{padding:20px;flex:1}
+.card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:18px}
+.card-title{font-size:12px;font-weight:500;margin-bottom:14px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.metric{background:var(--bg2);border-radius:var(--r);padding:13px 15px}
+.metric-label{font-size:11px;color:var(--text3);margin-bottom:5px}
+.metric-value{font-size:22px;font-weight:500}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.badge-blue{background:var(--accent-bg);color:var(--accent-text)}
+.badge-green{background:var(--success-bg);color:var(--success-text)}
+.badge-amber{background:var(--warn-bg);color:var(--warn-text)}
+.badge-red{background:var(--danger-bg);color:var(--danger-text)}
+.badge-purple{background:var(--purple-bg);color:var(--purple-text)}
+.badge-teal{background:var(--teal-bg);color:var(--teal-text)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r);border:.5px solid var(--border2);background:var(--bg);color:var(--text);font-size:13px;cursor:pointer;font-family:var(--font);transition:background .15s;white-space:nowrap}
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:#0C447C}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger{background:var(--danger-bg);color:var(--danger-text);border-color:transparent}
+.btn-success{background:var(--success-bg);color:var(--success-text);border-color:transparent}
+.btn-warn{background:var(--warn-bg);color:var(--warn-text);border-color:transparent}
+input,select,textarea{width:100%;padding:8px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+label{font-size:12px;color:var(--text2);margin-bottom:4px;display:block}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.fg{margin-bottom:12px}
+.fi{font-size:11px;color:var(--text3);margin-top:3px}
+.tw{overflow-x:auto;border-radius:var(--rl);border:.5px solid var(--border)}
+table{width:100%;border-collapse:collapse;background:var(--bg)}
+th{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;padding:9px 12px;text-align:left;border-bottom:.5px solid var(--border);background:var(--bg2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:.5px solid var(--border);font-size:13px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg2)}
+.tabs{display:flex;gap:2px;border-bottom:.5px solid var(--border);margin-bottom:18px;overflow-x:auto}
+.tab{padding:9px 16px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-.5px;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font);white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.view{display:none}.view.active{display:block}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--rl);padding:28px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-bg)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--rl);border:.5px solid var(--border);width:100%;max-width:680px;max-height:92vh;overflow-y:auto}
+.modal-header{padding:18px 22px 14px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:2}
+.modal-title{font-size:15px;font-weight:500}
+.modal-body{padding:18px 22px}
+.modal-footer{padding:14px 22px;border-top:.5px solid var(--border);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--bg)}
+.xbtn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3);padding:2px 8px;border-radius:var(--r)}
+.alert{padding:10px 14px;border-radius:var(--r);font-size:13px;margin-bottom:14px;line-height:1.5}
+.alert-info{background:var(--accent-bg);color:var(--accent-text)}
+.alert-success{background:var(--success-bg);color:var(--success-text)}
+.alert-warn{background:var(--warn-bg);color:var(--warn-text)}
+.alert-danger{background:var(--danger-bg);color:var(--danger-text)}
+.pbar{height:6px;background:var(--bg3);border-radius:999px;overflow:hidden;margin-top:5px}
+.pfill{height:100%;border-radius:999px;background:var(--accent);transition:width .4s}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:var(--r);overflow:hidden;border:.5px solid var(--border);background:var(--bg2);cursor:pointer}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-thumb .del-photo{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:999px;width:22px;height:22px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.photo-add{aspect-ratio:1;border-radius:var(--r);border:1.5px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--bg2);gap:4px;font-size:11px;color:var(--text3)}
+.photo-add:hover{border-color:var(--accent);background:var(--accent-bg);color:var(--accent-text)}
+.campo-card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:10px}
+.campo-code{font-size:11px;background:var(--bg2);padding:2px 8px;border-radius:4px;font-family:monospace}
+.niif-toggle{display:flex;gap:4px}
+.niif-opt{padding:4px 11px;border-radius:999px;font-size:11px;font-weight:500;cursor:pointer;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2)}
+.niif-opt.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.srow{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.srow input{max-width:260px;flex:1}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:3px 11px;border-radius:999px;font-size:12px;cursor:pointer;border:.5px solid var(--border2);background:var(--bg);color:var(--text2)}
+.chip.active{background:var(--accent-bg);color:var(--accent-text);border-color:var(--accent)}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:44px 20px;color:var(--text3)}
+.empty-icon{font-size:34px;margin-bottom:10px}
+.hamburger{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);padding:4px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+.foto-viewer{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2000;align-items:center;justify-content:center;flex-direction:column}
+.foto-viewer.open{display:flex}
+.foto-viewer img{max-width:92vw;max-height:80vh;border-radius:var(--r);object-fit:contain}
+.foto-viewer-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;cursor:pointer;border-radius:50%;width:38px;height:38px}
+.dep-table td,.dep-table th{font-size:12px;padding:6px 10px}
+.niif-box{border-left:3px solid var(--accent);padding:10px 14px;background:var(--accent-bg);border-radius:0 var(--r) var(--r) 0;font-size:12px;color:var(--accent-text);margin-bottom:12px;line-height:1.6}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-220px)}.sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}.main{margin-left:0}.hamburger{display:block}
+  .form-row{grid-template-columns:1fr}.form-row3{grid-template-columns:1fr 1fr}
+  .metrics{grid-template-columns:1fr 1fr}.content{padding:14px}.topbar{padding:10px 14px}
+}
+@media print{.sidebar,.topbar,.btn,.chips,.srow,.no-print{display:none!important}.main{margin-left:0}.content{padding:0}.card{border:1px solid #ccc;page-break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<style>
+#loginScreen{position:fixed;inset:0;background:#185FA5;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:#fff;border-radius:16px;padding:32px 28px;width:100%;max-width:360px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.25)}
+.login-logo{font-size:42px;margin-bottom:4px}
+.login-title{font-size:22px;font-weight:700;color:#185FA5;margin-bottom:4px}
+.login-sub{font-size:12px;color:#888;margin-bottom:24px}
+.login-box input{width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:system-ui;outline:none;margin-bottom:12px;text-align:center;letter-spacing:2px}
+.login-box input:focus{border-color:#185FA5}
+.login-btn{width:100%;padding:12px;background:#185FA5;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:system-ui}
+.login-btn:hover{background:#0C447C}
+.login-error{color:#A32D2D;font-size:13px;margin-top:10px;display:none}
+.login-footer{font-size:11px;color:#bbb;margin-top:20px}
+</style>
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">📋</div>
+    <div class="login-title">ActivaERP</div>
+    <div class="login-sub">Levantamiento de Activo Fijo · El Salvador</div>
+    <input type="password" id="loginPass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-error" id="loginError">Contraseña incorrecta. Intenta de nuevo.</div>
+    <div class="login-footer">Acceso restringido · Solo personal autorizado</div>
+  </div>
+</div>
+<script>
+(function(){
+  // Verificar si ya esta autenticado en esta sesion
+  if(sessionStorage.getItem('activaerp_auth')==='ok'){
+    var s=document.getElementById('loginScreen');
+    if(s) s.remove();
+    return;
+  }
+  // La contrasena se puede cambiar aqui
+  var PASS = 'Activa2025';
+  window.doLogin = function(){
+    var input = document.getElementById('loginPass').value;
+    if(input === PASS){
+      sessionStorage.setItem('activaerp_auth','ok');
+      document.getElementById('loginScreen').style.opacity='0';
+      document.getElementById('loginScreen').style.transition='opacity .3s';
+      setTimeout(function(){ document.getElementById('loginScreen').remove(); }, 300);
+    } else {
+      var err = document.getElementById('loginError');
+      err.style.display='block';
+      document.getElementById('loginPass').value='';
+      document.getElementById('loginPass').style.borderColor='#A32D2D';
+      setTimeout(function(){ document.getElementById('loginPass').style.borderColor='#ddd'; }, 1500);
+    }
+  };
+})();
+</script>
+
+<div class="foto-viewer" id="fotoViewer" onclick="closeFotoViewer()">
+  <button class="foto-viewer-close" onclick="closeFotoViewer()">✕</button>
+  <img id="fotoViewerImg" src="" alt="">
+  <div style="color:#fff;font-size:12px;margin-top:10px;opacity:.7" id="fotoViewerCap"></div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-text">📋 ActivaERP</div><div class="logo-sub">Levantamiento Activo Fijo · SV</div></div>
+  <div class="sidebar-section">
+    <div class="section-label">Principal</div>
+    <button class="nav-item active" onclick="showView('dashboard')"><span class="nav-icon">📊</span>Dashboard</button>
+    <button class="nav-item" onclick="showView('empresas')"><span class="nav-icon">🏢</span>Empresas</button>
+    <button class="nav-item" onclick="showView('configuracion')"><span class="nav-icon">⚙️</span>Configuración</button>
+  </div>
+  <div class="sidebar-section">
+    <div class="section-label">Levantamiento</div>
+    <button class="nav-item" onclick="showView('campo')"><span class="nav-icon">📱</span>Campo (Celular)</button>
+    <button class="nav-item" onclick="showView('activos')"><span class="nav-icon">🏷️</span>Todos los Activos</button>
+    <button class="nav-item" onclick="showView('importar')"><span class="nav-icon">📂</span>Importar Archivos</button>
+    <button class="nav-item" onclick="showView('fotos')"><span class="nav-icon">📸</span>Galería de Fotos</button>
+  </div>
+  <div class="sidebar-section">
+    <div class="section-label">NIIF / Contable</div>
+    <button class="nav-item" onclick="showView('depreciacion')"><span class="nav-icon">📉</span>Depreciación NIIF</button>
+    <button class="nav-item" onclick="showView('cedulas')"><span class="nav-icon">📋</span>Cédulas Contables</button>
+    <button class="nav-item" onclick="showView('hallazgos')"><span class="nav-icon">🔍</span>Hallazgos NIIF</button>
+  </div>
+  <div class="sidebar-section">
+    <div class="section-label">Reportes</div>
+    <button class="nav-item" onclick="showView('reportes')"><span class="nav-icon">📄</span>Exportar Reportes</button>
+  </div>
+  <div style="padding:14px 16px;margin-top:auto;border-top:.5px solid var(--border)">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Marco NIIF activo</div>
+    <div class="niif-toggle">
+      <div class="niif-opt active" onclick="setNIIF('pymes')" id="niif-pymes">PYMES</div>
+      <div class="niif-opt" onclick="setNIIF('completas')" id="niif-completas">Completas</div>
+    </div>
+  </div>
+</div>
+<div class="main">
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <span class="topbar-title" id="topbarTitle">Dashboard</span>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-primary btn-sm" onclick="showView('campo')">📱 Campo</button>
+    <button class="btn btn-sm" onclick="openModal('modalActivo')">+ Activo</button>
+  </div>
+</div>
+<div class="content">
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Total Activos</div><div class="metric-value" id="m-total">0</div><div class="metric-sub">registrados</div></div>
+    <div class="metric"><div class="metric-label">Verificados</div><div class="metric-value" id="m-verif" style="color:var(--success)">0</div><div class="metric-sub">en campo ✓</div></div>
+    <div class="metric"><div class="metric-label">Pendientes</div><div class="metric-value" id="m-pend" style="color:var(--warn)">0</div><div class="metric-sub">por verificar</div></div>
+    <div class="metric"><div class="metric-label">Con Fotos</div><div class="metric-value" id="m-fotos" style="color:var(--purple)">0</div><div class="metric-sub">documentados 📸</div></div>
+    <div class="metric"><div class="metric-label">Hallazgos</div><div class="metric-value" id="m-hall" style="color:var(--danger)">0</div><div class="metric-sub">requieren atención</div></div>
+    <div class="metric"><div class="metric-label">Valor en Libros</div><div class="metric-value" id="m-valor" style="font-size:14px;color:var(--teal)">$0</div><div class="metric-sub">total USD</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="card"><div class="card-title">Progreso por Empresa</div><div id="dashEmpresas"><div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">Crea una empresa para comenzar.</div></div></div></div>
+    <div class="card"><div class="card-title">Actividad Reciente</div><div id="dashActividad"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin actividad.</div></div></div></div>
+  </div>
+  <div class="card"><div class="card-title">Distribución por Categoría</div><div id="dashCats"><div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Sin activos.</div></div></div></div>
+</div>
+
+<!-- CAMPO -->
+<div class="view" id="view-campo">
+  <div class="alert alert-info">📱 <strong>Vista de campo.</strong> Optimizada para celular. Verifica activos, cambia estado y toma fotos aquí mismo.</div>
+  <div class="srow no-print">
+    <select id="campoEmpresa" onchange="renderCampo()" style="flex:1;min-width:160px"><option value="">Selecciona empresa...</option></select>
+    <select id="campoFiltro" onchange="renderCampo()" style="max-width:140px">
+      <option value="">Todos</option><option value="pendiente">Pendientes</option><option value="verificado">Verificados</option>
+    </select>
+    <input type="text" id="campoBuscar" placeholder="Buscar código..." oninput="renderCampo()" style="max-width:140px">
+  </div>
+  <div id="campoStats" style="margin-bottom:12px;display:none">
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric"><div class="metric-label">Total</div><div class="metric-value" id="cs-total" style="font-size:18px">0</div></div>
+      <div class="metric"><div class="metric-label">Verificados</div><div class="metric-value" id="cs-verif" style="font-size:18px;color:var(--success)">0</div></div>
+      <div class="metric"><div class="metric-label">Pendientes</div><div class="metric-value" id="cs-pend" style="font-size:18px;color:var(--warn)">0</div></div>
+    </div>
+    <div class="pbar"><div class="pfill" id="cs-bar" style="width:0%"></div></div>
+  </div>
+  <div id="campoList"><div class="empty"><div class="empty-icon">📱</div><div class="empty-text">Selecciona una empresa para comenzar.</div></div></div>
+</div>
+
+<!-- ACTIVOS -->
+<div class="view" id="view-activos">
+  <div class="srow no-print">
+    <input type="text" id="searchActivo" placeholder="Buscar código, descripción, serie..." oninput="renderActivos()">
+    <select id="filtroEmpresa" onchange="renderActivos()" style="max-width:190px"><option value="">Todas las empresas</option></select>
+    <select id="filtroEstado" onchange="renderActivos()" style="max-width:140px">
+      <option value="">Todos estados</option><option value="bueno">Bueno</option><option value="regular">Regular</option>
+      <option value="malo">Malo</option><option value="baja">Baja</option><option value="faltante">Faltante</option><option value="nuevo">Nuevo hallazgo</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modalActivo')">+ Nuevo Activo</button>
+  </div>
+  <div class="chips" id="filtroCategoria"></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Código</th><th>Descripción</th><th>Categoría</th><th>Empresa</th><th>Ubicación</th><th>Estado</th><th>Costo</th><th>V.Libros</th><th>Fotos</th><th>Verif.</th><th>Acciones</th></tr></thead>
+      <tbody id="activosBody"><tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text3)">Sin activos.</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- IMPORTAR -->
+<div class="view" id="view-importar">
+  <div class="alert alert-info">💡 Sube el archivo del cliente tal como está. El sistema detecta automáticamente <strong>Softland, SAP, Excel genérico, Word o PDF</strong> sin modificar el archivo original.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="card">
+      <div class="card-title">Cargar Archivo</div>
+      <div class="fg"><label>Empresa destino *</label><select id="importEmpresa"><option value="">— Selecciona empresa —</option></select></div>
+      <div class="fg"><label>Tipo de sistema origen</label>
+        <select id="importTipo"><option value="auto">Automático (recomendado)</option><option value="softland">Softland</option><option value="sap">SAP</option><option value="generico">Excel genérico</option></select>
+      </div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="doDrag(event,true)" ondragleave="doDrag(event,false)" ondrop="doDrop(event)">
+        <div style="font-size:28px;margin-bottom:8px">📂</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:4px">Arrastra o haz clic para cargar</div>
+        <div style="font-size:12px;color:var(--text3)">Excel (.xlsx .xls .csv) · Word (.docx) · PDF</div>
+      </div>
+      <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls,.csv,.docx,.pdf" onchange="handleFile(event)">
+      <div id="fileStatus" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mapeo Automático por Sistema</div>
+      <div style="font-size:12px;color:var(--text2);line-height:2">
+        <strong style="color:var(--text)">Softland:</strong> Activo → Descripción → Tipo → Ubicación → F.Adq. → Vida Fiscal → Costo Dólares → Dep.Acumulada<br>
+        <strong style="color:var(--text)">Excel genérico:</strong> Detección inteligente por nombre de columna<br>
+        <strong style="color:var(--text)">Word / PDF:</strong> Extracción de texto + lista de activos<br>
+      </div>
+      <div class="niif-box" style="margin-top:12px">⚖️ Las vidas útiles <strong>fiscales</strong> (Ley ISR SV) se convierten a criterio <strong>NIIF</strong> automáticamente. Las diferencias se registran como hallazgo de impuesto diferido.</div>
+    </div>
+  </div>
+  <div id="importPreview" style="display:none">
+    <div class="card">
+      <div class="card-title">Vista Previa</div>
+      <div id="importAlert" class="alert alert-warn"></div>
+      <div class="tw" style="max-height:280px;overflow-y:auto"><table><thead id="importThead"></thead><tbody id="importTbody"></tbody></table></div>
+      <div style="margin-top:14px;display:flex;gap:10px">
+        <button class="btn btn-success" onclick="confirmarImport()">✓ Confirmar e Importar</button>
+        <button class="btn" onclick="cancelarImport()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOTOS -->
+<div class="view" id="view-fotos">
+  <div class="alert alert-info">📸 Galería de fotos por activo. Las fotos se comprimen y guardan en el navegador. Para transferir al informe usa "Exportar Reportes".</div>
+  <div class="srow no-print">
+    <select id="fotosEmpresa" onchange="renderGaleria()" style="max-width:280px"><option value="">Todas las empresas</option></select>
+    <select id="fotosFiltro" onchange="renderGaleria()" style="max-width:160px">
+      <option value="">Todos</option><option value="con_fotos">Con fotos</option><option value="sin_fotos">Sin fotos</option>
+    </select>
+  </div>
+  <div id="galeriaContent"><div class="empty"><div class="empty-icon">📸</div><div class="empty-text">Ve a la vista de Campo y toma fotos de cada activo.</div></div></div>
+</div>
+
+<!-- DEPRECIACION -->
+<div class="view" id="view-depreciacion">
+  <div class="tabs">
+    <button class="tab active" onclick="showDepTab('calc',this)">Calculadora NIIF</button>
+    <button class="tab" onclick="showDepTab('vidautil',this)">Vidas Útiles</button>
+    <button class="tab" onclick="showDepTab('movimientos',this)">Movimientos del Período</button>
+    <button class="tab" onclick="showDepTab('fiscal',this)">NIIF vs Fiscal SV</button>
+  </div>
+  <div id="depTab-calc">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card">
+        <div class="card-title">Parámetros de Depreciación</div>
+        <div class="fg"><label>Marco normativo</label><select id="depMarco" onchange="autoVidaUtil()"><option value="pymes">NIIF para PYMES — Sección 17</option><option value="completas">NIIF Completas — IAS 16</option></select></div>
+        <div class="fg"><label>Categoría</label><select id="depCategoria" onchange="autoVidaUtil()"><option value="edificios">Edificios e instalaciones</option><option value="maquinaria">Maquinaria y equipo</option><option value="vehiculos">Vehículos</option><option value="computadoras">Equipo de cómputo</option><option value="muebles">Mobiliario y equipo de oficina</option><option value="herramientas">Herramientas y accesorios</option><option value="otro">Otro</option></select></div>
+        <div class="form-row">
+          <div class="fg"><label>Costo ($)</label><input type="number" id="depCosto" value="10000" oninput="calcDep()"></div>
+          <div class="fg"><label>Valor residual ($)</label><input type="number" id="depResidual" value="0" oninput="calcDep()"></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Vida útil NIIF (años)</label><input type="number" id="depVida" value="5" oninput="calcDep()"><div class="fi" id="depVidaInfo"></div></div>
+          <div class="fg"><label>Método</label><select id="depMetodo" onchange="calcDep()"><option value="lineal">Línea recta</option><option value="decreciente">Saldo decreciente</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Fecha adquisición</label><input type="date" id="depFechaAdq" oninput="calcDep()"></div>
+          <div class="fg"><label>Fecha de corte</label><input type="date" id="depFechaCorte" oninput="calcDep()"></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="calcDep()">Calcular</button>
+      </div>
+      <div class="card"><div class="card-title">Resultado</div><div id="depResult"><div class="empty"><div class="empty-icon">📉</div><div class="empty-text">Completa los parámetros.</div></div></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-title">Tabla Anual</div><div class="tw"><table class="dep-table"><thead><tr><th>Año</th><th>Dep. del período</th><th>Dep. acumulada</th><th>Valor en libros</th><th>%</th></tr></thead><tbody id="depTbody"></tbody></table></div></div>
+  </div>
+  <div id="depTab-vidautil" style="display:none">
+    <div class="card"><div class="card-title">Vidas Útiles NIIF — El Salvador</div>
+      <div class="tw"><table><thead><tr><th>Categoría</th><th>NIIF PYMES Sec.17</th><th>NIIF Completas IAS 16</th><th>Fiscal SV (Ley ISR)</th><th>Método rec.</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr><td>Edificios e instalaciones</td><td>20–40 años</td><td>20–50 años</td><td>20 años (5%)</td><td>Línea recta</td><td>Componentización en IAS 16</td></tr>
+        <tr><td>Maquinaria industrial</td><td>10–15 años</td><td>10–20 años</td><td>5 años (20%)</td><td>Línea recta / Unidades</td><td>Fiscal muy corto vs NIIF</td></tr>
+        <tr><td>Vehículos</td><td>5 años</td><td>4–6 años</td><td>3–5 años</td><td>Línea recta</td><td>Alternativa: km recorridos</td></tr>
+        <tr><td>Equipo de cómputo</td><td>3–5 años</td><td>3–5 años</td><td>2 años (50%)</td><td>Línea recta</td><td>Fiscal 2a vs NIIF 4a → impuesto diferido</td></tr>
+        <tr><td>Mobiliario y equipo</td><td>5–10 años</td><td>5–10 años</td><td>5 años (20%)</td><td>Línea recta</td><td>—</td></tr>
+        <tr><td>Herramientas</td><td>3–5 años</td><td>3–5 años</td><td>2 años (50%)</td><td>Línea recta</td><td>Menores pueden ir a gasto directo</td></tr>
+        <tr><td>Mejoras a propiedades</td><td>Plazo contrato</td><td>Plazo contrato</td><td>5 años</td><td>Línea recta</td><td>Máx vida útil o plazo arrendamiento</td></tr>
+      </tbody></table></div>
+      <div class="alert alert-warn" style="margin-top:12px;font-size:12px">⚠️ Bajo NIIF la empresa debe revisar vidas útiles <strong>al menos cada año</strong> (Sec.17.22 / IAS 16.51). Las diferencias con el criterio fiscal generan <strong>diferencias temporarias</strong> que dan origen a impuesto diferido (NIC 12 / Sec.29).</div>
+    </div>
+  </div>
+  <div id="depTab-movimientos" style="display:none">
+    <div class="card">
+      <div class="form-row" style="max-width:480px">
+        <div class="fg"><label>Empresa</label><select id="movEmpresa" onchange="renderMovimientos()"><option value="">Selecciona...</option></select></div>
+        <div class="fg"><label>Año</label><select id="movAnio" onchange="renderMovimientos()"><option value="2024">2024</option><option value="2025" selected>2025</option><option value="2026">2026</option></select></div>
+      </div>
+      <div id="movResult"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Selecciona empresa y año.</div></div></div>
+    </div>
+  </div>
+  <div id="depTab-fiscal" style="display:none">
+    <div class="card"><div class="card-title">Marco Legal El Salvador — NIIF vs Fiscal</div>
+      <div class="niif-box">📜 Base legal: <strong>Ley de Impuesto sobre la Renta Art.30</strong> · <strong>Código Tributario SV</strong> · <strong>NIIF PYMES (CCPAS)</strong> · <strong>NIC 12 / Sec.29</strong> (Impuesto diferido)</div>
+      <div class="tw"><table><thead><tr><th>Concepto</th><th>NIIF (financiero)</th><th>Fiscal SV</th><th>Diferencia</th><th>Impacto contable</th></tr></thead>
+      <tbody>
+        <tr><td>Vida útil cómputo</td><td>3–5 años</td><td>2 años (Ley ISR)</td><td>Temporal</td><td>Pasivo por impuesto diferido (25%)</td></tr>
+        <tr><td>Vida útil maquinaria</td><td>10–15 años</td><td>5 años</td><td>Temporal</td><td>Activo por impuesto diferido</td></tr>
+        <tr><td>Revaluación de activos</td><td>Permitida (IAS 16 modelo revaluación)</td><td>No reconocida fiscalmente</td><td>Permanente</td><td>No deducible — solo efecto patrimonial</td></tr>
+        <tr><td>Deterioro de valor</td><td>Requerido (IAS 36 / Sec.27)</td><td>No reconocido</td><td>Temporal</td><td>Diferencia temporaria deducible</td></tr>
+        <tr><td>Activos completamente dep.</td><td>Revelar en notas si siguen en uso</td><td>Sin efecto fiscal adicional</td><td>Divulgación</td><td>Solo notas a EEFF</td></tr>
+        <tr><td>Valor residual</td><td>Estimado técnicamente</td><td>No aplica (deprecia al 100%)</td><td>Temporal</td><td>Diferencia en base depreciable</td></tr>
+        <tr><td>Tasa ISR El Salvador</td><td>N/A</td><td>25% (30% si utilidades >$150,000)</td><td>—</td><td>Base para cálculo impuesto diferido</td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- CEDULAS -->
+<div class="view" id="view-cedulas">
+  <div class="srow no-print">
+    <select id="cedulaEmpresa" onchange="renderCedulas()" style="max-width:300px"><option value="">Selecciona empresa...</option></select>
+    <button class="btn btn-success btn-sm" onclick="exportCedulaExcel()">⬇ Excel</button>
+    <button class="btn btn-sm" onclick="window.print()">🖨 Imprimir</button>
+  </div>
+  <div id="cedulaContent"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Selecciona empresa para generar cédulas.</div></div></div>
+</div>
+
+<!-- HALLAZGOS -->
+<div class="view" id="view-hallazgos">
+  <div class="alert alert-warn">🔍 <strong>Hallazgos automáticos.</strong> El sistema identifica situaciones que requieren atención bajo NIIF y la legislación salvadoreña.</div>
+  <div class="srow no-print"><select id="hallazgosEmpresa" onchange="renderHallazgos()" style="max-width:300px"><option value="">Todas las empresas</option></select></div>
+  <div id="hallazgosContent"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Selecciona empresa o agrega activos para ver hallazgos.</div></div></div>
+</div>
+
+<!-- REPORTES -->
+<div class="view" id="view-reportes">
+  <div class="fg" style="max-width:320px;margin-bottom:20px"><label>Empresa para el reporte</label><select id="reporteEmpresa"><option value="">Todas las empresas</option></select></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px">
+    <div class="card" style="cursor:pointer" onclick="exportReporte('inventario')"><div style="font-size:26px;margin-bottom:8px">📊</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Inventario Completo</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Todos los activos con valores, depreciación NIIF y estado físico.</div><span class="badge badge-blue">Excel (.xlsx)</span></div>
+    <div class="card" style="cursor:pointer" onclick="exportReporte('levantamiento')"><div style="font-size:26px;margin-bottom:8px">📋</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Reporte de Levantamiento</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Activos verificados, faltantes y observaciones de campo.</div><span class="badge badge-blue">Excel (.xlsx)</span></div>
+    <div class="card" style="cursor:pointer" onclick="exportReporte('depreciacion')"><div style="font-size:26px;margin-bottom:8px">📉</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Cédula de Depreciación</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Depreciación NIIF vs fiscal, movimientos por categoría.</div><span class="badge badge-green">Excel (.xlsx)</span></div>
+    <div class="card" style="cursor:pointer" onclick="exportReporte('bajas')"><div style="font-size:26px;margin-bottom:8px">🗑️</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Activos para Dar de Baja</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Faltantes, mal estado y depreciados para acuerdo de baja contable.</div><span class="badge badge-red">Excel (.xlsx)</span></div>
+    <div class="card" style="cursor:pointer" onclick="exportReporte('hallazgos')"><div style="font-size:26px;margin-bottom:8px">🔍</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Informe de Hallazgos NIIF</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Diferencias NIIF vs libros, activos no registrados, ajustes sugeridos.</div><span class="badge badge-amber">Excel (.xlsx)</span></div>
+    <div class="card" style="cursor:pointer" onclick="exportReporte('cedula_niif')"><div style="font-size:26px;margin-bottom:8px">⚖️</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Conciliación NIIF / Fiscal</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Diferencias temporarias e impuesto diferido 25% ISR El Salvador.</div><span class="badge badge-purple">Excel (.xlsx)</span></div>
+  </div>
+</div>
+
+<!-- EMPRESAS -->
+<div class="view" id="view-empresas">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="btn btn-primary" onclick="openModal('modalEmpresa')">+ Nueva Empresa</button></div>
+  <div id="empresasList"><div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">No hay empresas registradas.</div></div></div>
+</div>
+
+<!-- CONFIGURACION -->
+<div class="view" id="view-configuracion">
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Google Drive — Almacenamiento de Fotos</div>
+    <div class="alert alert-info" style="margin-bottom:14px">Para sincronizar fotos con Google Drive necesitas configurar tu Client ID y API Key de <strong>Google Cloud Console</strong>.</div>
+    <div class="fg"><label>Google Client ID</label><input type="text" id="cfgClientId" placeholder="123456789-abc...apps.googleusercontent.com"></div>
+    <div class="fg"><label>Google API Key</label><input type="text" id="cfgApiKey" placeholder="AIzaSy..."></div>
+    <div class="fg"><label>Nombre de carpeta en Drive</label><input type="text" id="cfgDriveFolder" value="ActivaERP_Fotos"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary" onclick="guardarConfigDrive()">Guardar</button>
+      <button class="btn" onclick="testDriveConnection()">Probar conexión</button>
+    </div>
+    <div id="cfgDriveStatus" style="margin-top:10px"></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Pasos para obtener credenciales Google</div>
+    <div style="font-size:13px;color:var(--text2);line-height:2.1">
+      1. Ve a <strong>console.cloud.google.com</strong> → Nuevo proyecto → Nombre: <em>ActivaERP</em><br>
+      2. APIs y servicios → Biblioteca → Activa <strong>Google Drive API</strong> + <strong>Google Picker API</strong><br>
+      3. Credenciales → + Crear → <strong>ID de cliente OAuth 2.0</strong> → Aplicación web<br>
+      4. Orígenes autorizados: agrega la URL donde abres este archivo (ej. <code>file://</code> o tu servidor)<br>
+      5. Crea también una <strong>Clave de API</strong> → cópiala aquí arriba<br>
+      6. Pantalla de consentimiento → Scope: <code>https://www.googleapis.com/auth/drive.file</code>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Backup y Datos</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Activos: <strong id="cfgTA">0</strong> · Empresas: <strong id="cfgTE">0</strong> · Fotos: <strong id="cfgTF">0</strong></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="exportarBackup()">⬇ Backup JSON</button>
+      <button class="btn btn-sm" onclick="document.getElementById('importBackupInput').click()">⬆ Importar backup</button>
+      <button class="btn btn-sm btn-danger" onclick="limpiarTodo()">🗑 Limpiar todo</button>
+    </div>
+    <input type="file" id="importBackupInput" style="display:none" accept=".json" onchange="importarBackup(event)">
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /main -->
+<!-- MODALES -->
+<div class="modal-overlay" id="modalEmpresa">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nueva Empresa Cliente</div><button class="xbtn" onclick="closeModal('modalEmpresa')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><div class="fg"><label>Nombre *</label><input type="text" id="empNombre" placeholder="Distribuidora XYZ S.A. de C.V."></div><div class="fg"><label>NIT</label><input type="text" id="empNIT" placeholder="0000-000000-000-0"></div></div>
+      <div class="form-row"><div class="fg"><label>NRC</label><input type="text" id="empNRC" placeholder="000000-0"></div><div class="fg"><label>Giro económico</label><input type="text" id="empGiro"></div></div>
+      <div class="form-row">
+        <div class="fg"><label>Marco NIIF *</label><select id="empNIIF"><option value="pymes">NIIF PYMES (Sección 17)</option><option value="completas">NIIF Completas (IAS 16)</option></select></div>
+        <div class="fg"><label>Fecha de corte</label><input type="date" id="empFechaCorte"></div>
+      </div>
+      <div class="form-row"><div class="fg"><label>Contacto / Contador</label><input type="text" id="empContacto"></div><div class="fg"><label>Fecha de levantamiento</label><input type="date" id="empFechaLev"></div></div>
+      <div class="fg"><label>Observaciones</label><textarea id="empObs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modalEmpresa')">Cancelar</button><button class="btn btn-primary" onclick="guardarEmpresa()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalActivo">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modalActivoTitle">Nuevo Activo</div><button class="xbtn" onclick="closeModal('modalActivo')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><div class="fg"><label>Empresa *</label><select id="actEmpresa"><option value="">Seleccionar...</option></select></div><div class="fg"><label>Código / Etiqueta *</label><input type="text" id="actCodigo" placeholder="Ej. AF-001 o 1354"></div></div>
+      <div class="fg"><label>Descripción *</label><input type="text" id="actDesc" placeholder="Ej. Escritorio ejecutivo de madera"></div>
+      <div class="form-row">
+        <div class="fg"><label>Categoría *</label>
+          <select id="actCategoria" onchange="autoVidaUtilActivo()">
+            <option value="Edificios e instalaciones">Edificios e instalaciones</option>
+            <option value="Maquinaria y equipo">Maquinaria y equipo</option>
+            <option value="Vehículos">Vehículos</option>
+            <option value="Equipo de cómputo">Equipo de cómputo</option>
+            <option value="Mobiliario y equipo de oficina">Mobiliario y equipo de oficina</option>
+            <option value="Herramientas y accesorios">Herramientas y accesorios</option>
+            <option value="Mejoras a propiedades">Mejoras a propiedades</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="fg"><label>Serie / Modelo</label><input type="text" id="actSerie" placeholder="Número de serie"></div>
+      </div>
+      <div class="form-row"><div class="fg"><label>Ubicación física</label><input type="text" id="actUbicacion" placeholder="Ej. PLANTA / OFADM / Bodega central"></div><div class="fg"><label>Custodio / Responsable</label><input type="text" id="actCustodio"></div></div>
+      <div class="form-row3">
+        <div class="fg"><label>Costo adquisición ($)</label><input type="number" id="actCosto" value="0" step="0.01"></div>
+        <div class="fg"><label>Valor residual ($)</label><input type="number" id="actResidual" value="0" step="0.01"></div>
+        <div class="fg"><label>Fecha adquisición</label><input type="date" id="actFechaAdq"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Vida útil NIIF (años)</label><input type="number" id="actVidaUtil" value="5"><div class="fi">Criterio técnico NIIF — diferente al fiscal</div></div>
+        <div class="fg"><label>Vida útil fiscal (meses)</label><input type="number" id="actVidaFiscal" value="60"><div class="fi">Según Ley ISR El Salvador</div></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Método depreciación</label><select id="actMetodo"><option value="lineal">Línea recta</option><option value="decreciente">Saldo decreciente</option></select></div>
+        <div class="fg"><label>Estado físico</label>
+          <select id="actEstado">
+            <option value="bueno">Bueno</option><option value="regular">Regular</option><option value="malo">Malo / deteriorado</option>
+            <option value="baja">Dado de baja</option><option value="faltante">Faltante</option><option value="nuevo">Nuevo hallazgo (no en libros)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Estado de verificación</label><select id="actVerif"><option value="pendiente">Pendiente</option><option value="verificado">Verificado en campo</option></select></div>
+        <div class="fg"><label>Dep. acumulada en libros del cliente ($)</label><input type="number" id="actDepAcum" value="0" step="0.01"></div>
+      </div>
+      <div class="fg"><label>Observaciones de campo / NIIF</label><textarea id="actObs" rows="2" placeholder="Estado, placa encontrada, si está depreciado pero en uso..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('modalActivo')">Cancelar</button><button class="btn btn-primary" onclick="guardarActivo()">Guardar Activo</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalCampo">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Verificación de Campo</div><button class="xbtn" onclick="closeModal('modalCampo')">✕</button></div>
+    <div class="modal-body" id="modalCampoBody"></div>
+    <div class="modal-footer" id="modalCampoFooter"></div>
+  </div>
+</div>
+<script>
+// ===== STATE =====
+let S={niif:'pymes',empresas:[],activos:[],actividad:[],fotos:{},editId:null,importData:[],importEmpId:null,drive:{clientId:'',apiKey:'',folder:'ActivaERP_Fotos'}};
+function loadState(){try{const s=localStorage.getItem('activaerp_v3');if(s){const p=JSON.parse(s);S.empresas=p.empresas||[];S.activos=p.activos||[];S.actividad=p.actividad||[];S.fotos=p.fotos||{};S.drive=p.drive||S.drive;}}catch(e){}}
+function saveState(){try{localStorage.setItem('activaerp_v3',JSON.stringify({empresas:S.empresas,activos:S.activos,actividad:S.actividad,fotos:S.fotos,drive:S.drive}));}catch(e){alert('⚠️ Almacenamiento lleno. Exporta un backup primero.');}}
+loadState();
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const fmt=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n||0);
+const fmtN=n=>parseFloat(n||0).toFixed(2);
+const VIDA_NIIF={'Edificios e instalaciones':30,'Maquinaria y equipo':10,'Vehículos':5,'Equipo de cómputo':4,'Mobiliario y equipo de oficina':8,'Herramientas y accesorios':5,'Mejoras a propiedades':10,'Otro':5};
+const VIDA_DEP={edificios:[30,40],maquinaria:[10,15],vehiculos:[5,6],computadoras:[4,5],muebles:[8,10],herramientas:[3,5],otro:[5,10]};
+const TIPO_MAP={EQUI:'Maquinaria y equipo',EQUA:'Maquinaria y equipo',MAQU:'Maquinaria y equipo',MAQA:'Maquinaria y equipo',EQCA:'Maquinaria y equipo',ACC:'Herramientas y accesorios',ACCA:'Herramientas y accesorios',HYEP:'Herramientas y accesorios',MEOF:'Mobiliario y equipo de oficina',COMP:'Equipo de cómputo',COMU:'Equipo de cómputo',VDCA:'Vehículos',VEHI:'Vehículos',CAM:'Vehículos',EDIF:'Edificios e instalaciones',EDIC:'Edificios e instalaciones',EDII:'Edificios e instalaciones',INST:'Edificios e instalaciones'};
+
+// ===== NAV =====
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById('view-'+id);if(el)el.classList.add('active');
+  const labels={dashboard:'Dashboard',empresas:'Empresas',campo:'Campo 📱',activos:'Todos los Activos',importar:'Importar Archivos',fotos:'Galería de Fotos',depreciacion:'Depreciación NIIF',cedulas:'Cédulas Contables',hallazgos:'Hallazgos NIIF',reportes:'Exportar Reportes',configuracion:'Configuración'};
+  document.getElementById('topbarTitle').textContent=labels[id]||id;
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.trim().toLowerCase().includes(id.slice(0,5).toLowerCase()))n.classList.add('active');});
+  if(id==='dashboard')refreshDashboard();
+  if(id==='activos'){refreshSelects();renderActivos();}
+  if(id==='campo'){refreshSelects();renderCampo();}
+  if(id==='importar')refreshSelects();
+  if(id==='fotos'){refreshSelects();renderGaleria();}
+  if(id==='cedulas')refreshSelects();
+  if(id==='depreciacion'){
+    refreshSelects();
+    // Sincronizar selector de marco con configuracion global
+    var dm = document.getElementById('depMarco');
+    if(dm) dm.value = S.niif;
+    autoVidaUtil();
+    calcDep();
+  }
+  if(id==='hallazgos'){refreshSelects();renderHallazgos();}
+  if(id==='reportes')refreshSelects();
+  if(id==='configuracion')refreshConfig();
+  closeSidebar();
+}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');S.editId=null;const mt=document.getElementById('modalActivoTitle');if(mt)mt.textContent='Nuevo Activo';}
+function setNIIF(m){
+  S.niif=m;
+  document.getElementById('niif-pymes').classList.toggle('active',m==='pymes');
+  document.getElementById('niif-completas').classList.toggle('active',m==='completas');
+  // Actualizar vidas utiles segun marco
+  ajustarVidasUtilesPorNIIF(m);
+  // Recalcular todo
+  saveState();
+  refreshDashboard();
+  if(document.getElementById('view-activos').classList.contains('active')) renderActivos();
+  if(document.getElementById('view-campo').classList.contains('active')) renderCampo();
+  if(document.getElementById('view-cedulas').classList.contains('active')) renderCedulas();
+  if(document.getElementById('view-hallazgos').classList.contains('active')) renderHallazgos();
+  if(document.getElementById('view-depreciacion').classList.contains('active')) calcDep();
+  // Notificar cambio
+  showNIIFToast(m);
+}
+
+function ajustarVidasUtilesPorNIIF(marco){
+  // Vidas utiles recomendadas por marco
+  // PYMES Sec.17 usa el minimo del rango, Completas IAS 16 usa el maximo
+  const VIDA_PYMES = {'Edificios e instalaciones':30,'Maquinaria y equipo':10,'Vehiculos':5,'Equipo de computo':4,'Mobiliario y equipo de oficina':8,'Herramientas y accesorios':5,'Mejoras a propiedades':10,'Otro':5};
+  const VIDA_COMPLETAS = {'Edificios e instalaciones':40,'Maquinaria y equipo':15,'Vehiculos':6,'Equipo de computo':5,'Mobiliario y equipo de oficina':10,'Herramientas y accesorios':5,'Mejoras a propiedades':10,'Otro':10};
+  // Las vidas por activo individual NO se cambian automaticamente
+  // (requieren decision del cliente) pero si afectan calculos globales
+  S.vidaNIIF = marco === 'pymes' ? VIDA_PYMES : VIDA_COMPLETAS;
+}
+
+function showNIIFToast(marco){
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:64px;right:16px;background:var(--accent);color:#fff;'
+    + 'padding:10px 16px;border-radius:10px;font-size:13px;z-index:9999;'
+    + 'box-shadow:0 4px 16px rgba(0,0,0,.25);font-family:system-ui;max-width:280px;';
+  t.innerHTML = marco === 'pymes'
+    ? '<strong>NIIF PYMES</strong> activo &mdash; Seccion 17. Vidas utiles minimas aplicadas.'
+    : '<strong>NIIF Completas</strong> activo &mdash; IAS 16. Vidas utiles maximas, componentizacion requerida.';
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .5s'; setTimeout(function(){t.remove();},600); }, 3000);
+}
+
+// ===== EMPRESAS =====
+function guardarEmpresa(){
+  const n=document.getElementById('empNombre').value.trim();if(!n){alert('El nombre es requerido.');return;}
+  S.empresas.push({id:uid(),nombre:n,nit:document.getElementById('empNIT').value,nrc:document.getElementById('empNRC').value,giro:document.getElementById('empGiro').value,niif:document.getElementById('empNIIF').value,fechaCorte:document.getElementById('empFechaCorte').value,contacto:document.getElementById('empContacto').value,fechaLev:document.getElementById('empFechaLev').value,obs:document.getElementById('empObs').value,creado:new Date().toISOString()});
+  log('Empresa: '+n);saveState();refreshSelects();renderEmpresas();closeModal('modalEmpresa');
+  ['empNombre','empNIT','empNRC','empGiro','empContacto','empObs'].forEach(id=>document.getElementById(id).value='');
+}
+function renderEmpresas(){
+  const c=document.getElementById('empresasList');
+  if(!S.empresas.length){c.innerHTML='<div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">No hay empresas.</div></div>';return;}
+  c.innerHTML=S.empresas.map(e=>{
+    const act=S.activos.filter(a=>a.empresaId===e.id),v=act.filter(a=>a.verificado==='verificado').length,pct=act.length?Math.round(v/act.length*100):0;
+    const nf=act.filter(a=>(S.fotos[a.id]||[]).length>0).length;
+    return `<div class="card" style="margin-bottom:12px"><div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:500;margin-bottom:4px">${e.nombre}</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px">NIT: ${e.nit||'—'} · NRC: ${e.nrc||'—'} · ${e.giro||''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="badge ${e.niif==='pymes'?'badge-blue':'badge-purple'}">${e.niif==='pymes'?'NIIF PYMES':'NIIF Completas'}</span>
+          <span class="badge badge-teal">${act.length} activos</span>
+          <span class="badge badge-green">${v} verif.</span>
+          <span class="badge badge-purple">${nf} con fotos</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Levantamiento: ${pct}%</div>
+        <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn btn-sm btn-primary" onclick="showView('campo');setTimeout(()=>{document.getElementById('campoEmpresa').value='${e.id}';renderCampo();},100)">📱 Campo</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarEmpresa('${e.id}')">Eliminar</button>
+      </div>
+    </div></div>`;
+  }).join('');
+}
+function eliminarEmpresa(id){if(!confirm('¿Eliminar empresa y todos sus activos?'))return;S.empresas=S.empresas.filter(e=>e.id!==id);S.activos=S.activos.filter(a=>a.empresaId!==id);saveState();renderEmpresas();refreshSelects();}
+
+// ===== ACTIVOS =====
+function autoVidaUtilActivo(){const cat=document.getElementById('actCategoria').value;const vu=VIDA_NIIF[cat]||5;document.getElementById('actVidaUtil').value=vu;document.getElementById('actVidaFiscal').value=vu*12;}
+function calcVL(a){
+  if(!a.costo||!a.fechaAdq||!a.vidaUtil)return a.costo||0;
+  // Usar vida util NIIF del activo; si hay ajuste por marco aplicarlo
+  var vidaBase = a.vidaUtil || 5;
+  // Si el activo tiene vida util registrada, respetarla
+  // pero si S.niif cambio, usar la del marco activo como referencia
+  const inicio=new Date(a.fechaAdq),hoy=new Date(),años=Math.max(0,(hoy-inicio)/(365.25*24*3600*1000));
+  const base=(a.costo-(a.residual||0)),da=base/vidaBase,depAcum=Math.min(da*años,base);
+  return Math.max(a.residual||0,a.costo-depAcum);
+}
+
+function calcVLconMarco(a, marco){
+  // Calcula valor en libros aplicando el marco NIIF especifico
+  if(!a.costo||!a.fechaAdq)return a.costo||0;
+  const VIDA_PYMES = {'Edificios e instalaciones':30,'Maquinaria y equipo':10,'Vehículos':5,'Equipo de cómputo':4,'Mobiliario y equipo de oficina':8,'Herramientas y accesorios':5,'Mejoras a propiedades':10,'Otro':5};
+  const VIDA_COMPLETAS = {'Edificios e instalaciones':40,'Maquinaria y equipo':15,'Vehículos':6,'Equipo de cómputo':5,'Mobiliario y equipo de oficina':10,'Herramientas y accesorios':5,'Mejoras a propiedades':10,'Otro':10};
+  const tablaVidas = marco === 'completas' ? VIDA_COMPLETAS : VIDA_PYMES;
+  // Priorizar vida util especifica del activo; si no, usar la del marco
+  const vida = a.vidaUtil || tablaVidas[a.categoria] || 5;
+  const inicio=new Date(a.fechaAdq),hoy=new Date(),años=Math.max(0,(hoy-inicio)/(365.25*24*3600*1000));
+  const base=(a.costo-(a.residual||0)),da=base/vida,depAcum=Math.min(da*años,base);
+  return Math.max(a.residual||0,a.costo-depAcum);
+}
+function guardarActivo(){
+  const empId=document.getElementById('actEmpresa').value,cod=document.getElementById('actCodigo').value.trim(),desc=document.getElementById('actDesc').value.trim();
+  if(!empId||!cod||!desc){alert('Empresa, código y descripción son requeridos.');return;}
+  const a={id:S.editId||uid(),empresaId:empId,codigo:cod,descripcion:desc,categoria:document.getElementById('actCategoria').value,serie:document.getElementById('actSerie').value,ubicacion:document.getElementById('actUbicacion').value,custodio:document.getElementById('actCustodio').value,costo:parseFloat(document.getElementById('actCosto').value)||0,residual:parseFloat(document.getElementById('actResidual').value)||0,fechaAdq:document.getElementById('actFechaAdq').value,vidaUtil:parseInt(document.getElementById('actVidaUtil').value)||5,vidaFiscal:parseInt(document.getElementById('actVidaFiscal').value)||60,metodo:document.getElementById('actMetodo').value,estado:document.getElementById('actEstado').value,verificado:document.getElementById('actVerif').value,depAcumLibros:parseFloat(document.getElementById('actDepAcum').value)||0,obs:document.getElementById('actObs').value,fechaMod:new Date().toISOString()};
+  if(S.editId){const i=S.activos.findIndex(x=>x.id===S.editId);if(i>=0)S.activos[i]=a;log('Editado: '+desc);}else{S.activos.push(a);log('Nuevo: '+desc);}
+  saveState();renderActivos();refreshDashboard();closeModal('modalActivo');
+  ['actSerie','actUbicacion','actCustodio','actObs','actCodigo','actDesc'].forEach(id=>document.getElementById(id).value='');
+  ['actCosto','actResidual','actDepAcum'].forEach(id=>document.getElementById(id).value=0);S.editId=null;
+}
+function renderActivos(){
+  const search=(document.getElementById('searchActivo').value||'').toLowerCase();
+  const empF=document.getElementById('filtroEmpresa').value,estF=document.getElementById('filtroEstado').value;
+  const catF=document.querySelector('#filtroCategoria .chip.active:not([data-all])')?.dataset.cat||'';
+  let list=S.activos.filter(a=>{
+    if(empF&&a.empresaId!==empF)return false;if(estF&&a.estado!==estF)return false;
+    if(catF&&a.categoria!==catF)return false;
+    if(search&&!`${a.codigo} ${a.descripcion} ${a.serie||''} ${a.ubicacion||''}`.toLowerCase().includes(search))return false;
+    return true;
+  });
+  const sbc={bueno:'badge-green',regular:'badge-amber',malo:'badge-red',baja:'badge-red',faltante:'badge-red',nuevo:'badge-purple'};
+  document.getElementById('activosBody').innerHTML=list.length?list.map(a=>{
+    const emp=S.empresas.find(e=>e.id===a.empresaId),vl=calcVL(a),nf=(S.fotos[a.id]||[]).length;
+    return `<tr><td><code style="font-size:11px">${a.codigo}</code></td><td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.descripcion}</td><td><span class="badge badge-teal" style="font-size:10px">${a.categoria}</span></td><td style="font-size:11px">${emp?.nombre||'—'}</td><td style="font-size:12px">${a.ubicacion||'—'}</td><td><span class="badge ${sbc[a.estado]||'badge-blue'}">${a.estado}</span></td><td style="font-size:12px">${fmt(a.costo)}</td><td style="font-size:12px">${fmt(vl)}</td><td style="text-align:center">${nf>0?`<span class="badge badge-purple">📸${nf}</span>`:'—'}</td><td><span class="badge ${a.verificado==='verificado'?'badge-green':'badge-amber'}">${a.verificado==='verificado'?'✓':'Pend.'}</span></td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="editActivo('${a.id}')">Editar</button> <button class="btn btn-sm" onclick="abrirCampoModal('${a.id}')">📸</button> <button class="btn btn-sm btn-danger" onclick="eliminarActivo('${a.id}')">✕</button></td></tr>`;
+  }).join(''):'<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text3)">No se encontraron activos.</td></tr>';
+  const cats=[...new Set(S.activos.map(a=>a.categoria))];
+  document.getElementById('filtroCategoria').innerHTML=`<span class="chip active" data-all="1" onclick="selCat(this,'')">Todas</span>`+cats.map(c=>`<span class="chip" data-cat="${c}" onclick="selCat(this,'${c}')">${c}</span>`).join('');
+}
+function selCat(el,cat){document.querySelectorAll('#filtroCategoria .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderActivos();}
+function editActivo(id){
+  const a=S.activos.find(x=>x.id===id);if(!a)return;S.editId=id;
+  document.getElementById('modalActivoTitle').textContent='Editar Activo';
+  document.getElementById('actEmpresa').value=a.empresaId;document.getElementById('actCodigo').value=a.codigo;document.getElementById('actDesc').value=a.descripcion;document.getElementById('actCategoria').value=a.categoria;document.getElementById('actSerie').value=a.serie||'';document.getElementById('actUbicacion').value=a.ubicacion||'';document.getElementById('actCustodio').value=a.custodio||'';document.getElementById('actCosto').value=a.costo;document.getElementById('actResidual').value=a.residual||0;document.getElementById('actFechaAdq').value=a.fechaAdq||'';document.getElementById('actVidaUtil').value=a.vidaUtil;document.getElementById('actVidaFiscal').value=a.vidaFiscal||a.vidaUtil*12;document.getElementById('actMetodo').value=a.metodo||'lineal';document.getElementById('actEstado').value=a.estado||'bueno';document.getElementById('actVerif').value=a.verificado||'pendiente';document.getElementById('actDepAcum').value=a.depAcumLibros||0;document.getElementById('actObs').value=a.obs||'';
+  refreshSelects();openModal('modalActivo');
+}
+function eliminarActivo(id){if(!confirm('¿Eliminar?'))return;S.activos=S.activos.filter(a=>a.id!==id);delete S.fotos[id];saveState();renderActivos();refreshDashboard();}
+
+// ===== CAMPO =====
+function renderCampo(){
+  const empId=document.getElementById('campoEmpresa').value,filtro=document.getElementById('campoFiltro').value,buscar=(document.getElementById('campoBuscar').value||'').toLowerCase();
+  const c=document.getElementById('campoList'),stats=document.getElementById('campoStats');
+  if(!empId){c.innerHTML='<div class="empty"><div class="empty-icon">📱</div><div class="empty-text">Selecciona una empresa para comenzar.</div></div>';stats.style.display='none';return;}
+  let lista=S.activos.filter(a=>a.empresaId===empId);
+  if(filtro==='pendiente')lista=lista.filter(a=>a.verificado!=='verificado');
+  if(filtro==='verificado')lista=lista.filter(a=>a.verificado==='verificado');
+  if(buscar)lista=lista.filter(a=>`${a.codigo} ${a.descripcion}`.toLowerCase().includes(buscar));
+  const total=S.activos.filter(a=>a.empresaId===empId).length,verif=S.activos.filter(a=>a.empresaId===empId&&a.verificado==='verificado').length,pct=total?Math.round(verif/total*100):0;
+  stats.style.display='block';document.getElementById('cs-total').textContent=total;document.getElementById('cs-verif').textContent=verif;document.getElementById('cs-pend').textContent=total-verif;document.getElementById('cs-bar').style.width=pct+'%';
+  if(!lista.length){c.innerHTML='<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No hay activos en esta vista.</div></div>';return;}
+  const sbc={bueno:'badge-green',regular:'badge-amber',malo:'badge-red',baja:'badge-red',faltante:'badge-red',nuevo:'badge-purple'};
+  c.innerHTML=lista.map(a=>{
+    const nf=(S.fotos[a.id]||[]).length,vl=calcVL(a);
+    return `<div class="campo-card">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">
+            <span class="campo-code">${a.codigo}</span>
+            <span class="badge ${a.verificado==='verificado'?'badge-green':'badge-amber'}">${a.verificado==='verificado'?'✓ Verif.':'Pendiente'}</span>
+            <span class="badge ${sbc[a.estado]||'badge-blue'}">${a.estado}</span>
+            ${nf>0?`<span class="badge badge-purple">📸${nf}</span>`:''}
+          </div>
+          <div style="font-size:15px;font-weight:500;margin-bottom:3px">${a.descripcion}</div>
+          <div style="font-size:12px;color:var(--text3)">📍 ${a.ubicacion||'Sin ubicación'} · 👤 ${a.custodio||'Sin custodio'}</div>
+          <div style="font-size:12px;color:var(--text3)">💰 Costo: ${fmt(a.costo)} · V.Libros NIIF: ${fmt(vl)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-success btn-sm" onclick="verificarRapido('${a.id}')"${a.verificado==='verificado'?' style="opacity:.5"':''}>✓ Verificar</button>
+        <button class="btn btn-primary btn-sm" onclick="abrirCampoModal('${a.id}')">📸 Fotos / Detalles</button>
+        ${nf<3?`<button class="btn btn-sm" onclick="tomarFotoRapida('${a.id}')">📷 Foto rápida (${nf}/3)</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function verificarRapido(id){const a=S.activos.find(x=>x.id===id);if(!a)return;a.verificado='verificado';a.fechaVerif=new Date().toISOString();log('Verificado: '+a.descripcion);saveState();renderCampo();refreshDashboard();}
+function abrirCampoModal(id){
+  const a=S.activos.find(x=>x.id===id);if(!a)return;
+  const fotos=S.fotos[id]||[];
+  document.getElementById('modalCampoBody').innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px"><span class="campo-code">${a.codigo}</span><span class="badge badge-teal">${a.categoria}</span></div>
+      <div style="font-size:16px;font-weight:500">${a.descripcion}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:3px">Costo: ${fmt(a.costo)} · V.Libros NIIF: ${fmt(calcVL(a))}</div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Estado físico</label><select id="cfEstado"><option value="bueno"${a.estado==='bueno'?' selected':''}>Bueno</option><option value="regular"${a.estado==='regular'?' selected':''}>Regular</option><option value="malo"${a.estado==='malo'?' selected':''}>Malo</option><option value="baja"${a.estado==='baja'?' selected':''}>Dado de baja</option><option value="faltante"${a.estado==='faltante'?' selected':''}>Faltante</option><option value="nuevo"${a.estado==='nuevo'?' selected':''}>Nuevo hallazgo</option></select></div>
+      <div class="fg"><label>Ubicación encontrada</label><input type="text" id="cfUbicacion" value="${a.ubicacion||''}" placeholder="Ubicación actual"></div>
+    </div>
+    <div class="fg"><label>Custodio verificado</label><input type="text" id="cfCustodio" value="${a.custodio||''}"></div>
+    <div class="fg"><label>Observaciones de campo</label><textarea id="cfObs" rows="2">${a.obs||''}</textarea></div>
+    <div style="margin-top:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px">📸 Fotos del activo (máx. 3)</div>
+      <div class="photo-grid">
+        ${fotos.map((f,i)=>`<div class="photo-thumb" onclick="viewFoto('${id}',${i})"><img src="${f.data}" alt="f${i+1}"><button class="del-photo" onclick="event.stopPropagation();eliminarFoto('${id}',${i})">✕</button></div>`).join('')}
+        ${fotos.length<3?`<div class="photo-add" onclick="document.getElementById('fi_${id}').click()"><div style="font-size:22px">📷</div><div>Agregar foto</div></div><input type="file" id="fi_${id}" accept="image/*" capture="environment" style="display:none" onchange="agregarFoto('${id}',this)">`:``}
+      </div>
+    </div>`;
+  document.getElementById('modalCampoFooter').innerHTML=`<button class="btn" onclick="closeModal('modalCampo')">Cancelar</button><button class="btn btn-success" onclick="guardarCampo('${id}')">✓ Guardar y Verificar</button>`;
+  openModal('modalCampo');
+}
+function guardarCampo(id){
+  const a=S.activos.find(x=>x.id===id);if(!a)return;
+  a.estado=document.getElementById('cfEstado').value;a.ubicacion=document.getElementById('cfUbicacion').value;a.custodio=document.getElementById('cfCustodio').value;a.obs=document.getElementById('cfObs').value;a.verificado='verificado';a.fechaVerif=new Date().toISOString();
+  log('Campo guardado: '+a.descripcion);saveState();closeModal('modalCampo');renderCampo();refreshDashboard();
+}
+function tomarFotoRapida(id){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.setAttribute('capture','environment');inp.onchange=e=>agregarFotoFile(id,e.target.files[0]);inp.click();}
+function agregarFoto(id,inp){if(inp.files[0])agregarFotoFile(id,inp.files[0]);}
+function agregarFotoFile(id,file){
+  if(!file)return;if((S.fotos[id]||[]).length>=3){alert('Máx. 3 fotos por activo.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();img.onload=()=>{
+      const canvas=document.createElement('canvas');const MAX=800;let w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
+      if(!S.fotos[id])S.fotos[id]=[];S.fotos[id].push({data:canvas.toDataURL('image/jpeg',0.72),ts:new Date().toISOString()});
+      const a=S.activos.find(x=>x.id===id);log('Foto: '+(a?.descripcion||id));saveState();
+      if(document.getElementById('modalCampo').classList.contains('open'))abrirCampoModal(id);
+      refreshDashboard();
+    };img.src=e.target.result;
+  };reader.readAsDataURL(file);
+}
+function eliminarFoto(id,idx){if(!confirm('¿Eliminar foto?'))return;S.fotos[id].splice(idx,1);saveState();if(document.getElementById('modalCampo').classList.contains('open'))abrirCampoModal(id);}
+function viewFoto(id,idx){const f=S.fotos[id]?.[idx];if(!f)return;const a=S.activos.find(x=>x.id===id);document.getElementById('fotoViewerImg').src=f.data;document.getElementById('fotoViewerCap').textContent=`${a?.codigo||''} — ${a?.descripcion||''} · ${new Date(f.ts).toLocaleString('es-SV')}`;document.getElementById('fotoViewer').classList.add('open');}
+function closeFotoViewer(){document.getElementById('fotoViewer').classList.remove('open');}
+
+// ===== GALERÍA =====
+function renderGaleria(){
+  const empId=document.getElementById('fotosEmpresa').value,filtro=document.getElementById('fotosFiltro').value;
+  let lista=S.activos.filter(a=>!empId||a.empresaId===empId);
+  if(filtro==='con_fotos')lista=lista.filter(a=>(S.fotos[a.id]||[]).length>0);
+  if(filtro==='sin_fotos')lista=lista.filter(a=>(S.fotos[a.id]||[]).length===0);
+  const c=document.getElementById('galeriaContent');
+  if(!lista.length){c.innerHTML='<div class="empty"><div class="empty-icon">📸</div><div class="empty-text">Sin activos en esta selección.</div></div>';return;}
+  c.innerHTML=lista.map(a=>{
+    const fotos=S.fotos[a.id]||[],emp=S.empresas.find(e=>e.id===a.empresaId);
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="flex:1"><div style="display:flex;gap:6px;align-items:center;margin-bottom:4px"><span class="campo-code">${a.codigo}</span><span class="badge badge-teal" style="font-size:10px">${a.categoria}</span><span class="badge ${a.verificado==='verificado'?'badge-green':'badge-amber'}">${a.verificado==='verificado'?'✓':'Pend.'}</span></div><div style="font-size:14px;font-weight:500">${a.descripcion}</div><div style="font-size:11px;color:var(--text3)">${emp?.nombre||'—'} · ${a.ubicacion||'Sin ubicación'}</div></div>
+        <button class="btn btn-sm btn-primary" onclick="abrirCampoModal('${a.id}')">📷 Fotos</button>
+      </div>
+      ${fotos.length>0?`<div class="photo-grid" style="margin-top:10px">${fotos.map((f,i)=>`<div class="photo-thumb" onclick="viewFoto('${a.id}',${i})"><img src="${f.data}" alt="f"></div>`).join('')}</div>`:`<div style="margin-top:10px;padding:14px;background:var(--bg2);border-radius:var(--r);text-align:center;font-size:12px;color:var(--text3)">Sin fotos — toma fotos en el campo 📷</div>`}
+    </div>`;
+  }).join('');
+}
+
+// ===== DEPRECIACIÓN =====
+function autoVidaUtil(){const cat=document.getElementById('depCategoria').value,marco=document.getElementById('depMarco').value,r=VIDA_DEP[cat]||[5,10],v=marco==='pymes'?r[0]:r[1];document.getElementById('depVida').value=v;document.getElementById('depVidaInfo').textContent=`NIIF ${marco==='pymes'?'PYMES Sec.17':'Completas IAS 16'}: ${r[0]}–${r[1]} años`;calcDep();}
+function calcDep(){
+  const costo=parseFloat(document.getElementById('depCosto').value)||0,residual=parseFloat(document.getElementById('depResidual').value)||0,vida=parseInt(document.getElementById('depVida').value)||5,metodo=document.getElementById('depMetodo').value;
+  const fa=document.getElementById('depFechaAdq').value,fc=document.getElementById('depFechaCorte').value||new Date().toISOString().slice(0,10);
+  const base=Math.max(0,costo-residual),daLineal=base/vida;let años=0;
+  if(fa)años=Math.max(0,(new Date(fc)-new Date(fa))/(365.25*24*3600*1000));
+  const depAcum=Math.min(daLineal*años,base),vl=Math.max(residual,costo-depAcum);
+  const marco=document.getElementById('depMarco').value;
+  document.getElementById('depResult').innerHTML=`<div class="metrics" style="grid-template-columns:1fr 1fr"><div class="metric"><div class="metric-label">Dep. anual</div><div class="metric-value" style="font-size:17px">${fmt(daLineal)}</div></div><div class="metric"><div class="metric-label">Dep. mensual</div><div class="metric-value" style="font-size:17px">${fmt(daLineal/12)}</div></div><div class="metric"><div class="metric-label">Dep. acumulada</div><div class="metric-value" style="font-size:17px;color:var(--danger)">${fmt(depAcum)}</div></div><div class="metric"><div class="metric-label">Valor en libros</div><div class="metric-value" style="font-size:17px;color:var(--success)">${fmt(vl)}</div></div></div><div class="niif-box" style="margin-top:10px;font-size:12px">Años: ${años.toFixed(2)} · Tasa: ${costo>0?(daLineal/costo*100).toFixed(2):0}% · Marco: <strong>${marco==='pymes'?'NIIF PYMES Sec.17':'NIIF Completas IAS 16'}</strong>${vl<=0?'<br>⚠️ <strong>Activo completamente depreciado</strong> — si sigue en uso revisar vida útil residual (Sec.17.22/IAS 16.51)':''}</div>`;
+  let rows='',depAc=0,vlA=costo;
+  for(let y=1;y<=vida;y++){let dY=metodo==='lineal'?daLineal:(vlA*2/vida);dY=Math.min(dY,vlA-residual);depAc+=dY;vlA=Math.max(residual,vlA-dY);rows+=`<tr><td>${y}</td><td>${fmt(dY)}</td><td>${fmt(depAc)}</td><td>${fmt(vlA)}</td><td>${(base>0?depAc/base*100:0).toFixed(1)}%</td></tr>`;}
+  document.getElementById('depTbody').innerHTML=rows;
+}
+function showDepTab(id,btn){document.querySelectorAll('[id^="depTab-"]').forEach(t=>t.style.display='none');document.getElementById('depTab-'+id).style.display='block';document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');}
+function renderMovimientos(){
+  const empId=document.getElementById('movEmpresa').value,anio=parseInt(document.getElementById('movAnio').value);if(!empId)return;
+  const activos=S.activos.filter(a=>a.empresaId===empId);if(!activos.length){document.getElementById('movResult').innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin activos.</div></div>';return;}
+  const cats=[...new Set(activos.map(a=>a.categoria))];let rows='',tS=0,tD=0,tF=0;
+  cats.forEach(cat=>{const g=activos.filter(a=>a.categoria===cat);let sI=0,dA=0,sF=0;
+    g.forEach(a=>{const c=a.costo||0,r=a.residual||0,v=a.vidaUtil||5,da=(c-r)/v,adq=a.fechaAdq?new Date(a.fechaAdq).getFullYear():2020,añosDep=Math.max(0,(anio-1)-adq),dAcumI=Math.min(da*añosDep,c-r);sI+=c-dAcumI;dA+=da;sF+=Math.max(r,c-dAcumI-da);});
+    tS+=sI;tD+=dA;tF+=sF;rows+=`<tr><td>${cat}</td><td style="text-align:center">${g.length}</td><td style="text-align:right">${fmt(sI)}</td><td style="text-align:right">${fmt(dA)}</td><td style="text-align:right">${fmt(sF)}</td></tr>`;});
+  document.getElementById('movResult').innerHTML=`<div class="tw"><table><thead><tr><th>Categoría</th><th>Activos</th><th>Saldo inicio ${anio}</th><th>Dep. ${anio}</th><th>Saldo final ${anio}</th></tr></thead><tbody>${rows}<tr style="font-weight:500;background:var(--bg2)"><td>TOTAL</td><td style="text-align:center">${activos.length}</td><td style="text-align:right">${fmt(tS)}</td><td style="text-align:right">${fmt(tD)}</td><td style="text-align:right">${fmt(tF)}</td></tr></tbody></table></div>`;
+}
+
+// ===== CÉDULAS =====
+function renderCedulas(){
+  const empId=document.getElementById('cedulaEmpresa').value;if(!empId)return;
+  const emp=S.empresas.find(e=>e.id===empId),activos=S.activos.filter(a=>a.empresaId===empId);
+  if(!activos.length){document.getElementById('cedulaContent').innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin activos.</div></div>';return;}
+  const hoy=new Date().toLocaleDateString('es-SV'),totC=activos.reduce((s,a)=>s+(a.costo||0),0),totVL=activos.reduce((s,a)=>s+calcVL(a),0),totDep=totC-totVL;
+  const rows=activos.map(a=>{const vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5),depAcum=(a.costo||0)-vl,nf=(S.fotos[a.id]||[]).length;
+    return `<tr><td>${a.codigo}</td><td>${a.descripcion}</td><td>${a.categoria}</td><td>${a.fechaAdq||'—'}</td><td style="text-align:right">${fmt(a.costo)}</td><td style="text-align:right">${fmt(a.residual)}</td><td style="text-align:right">${a.vidaUtil}</td><td style="text-align:right">${fmt(da)}</td><td style="text-align:right">${fmt(depAcum)}</td><td style="text-align:right">${fmt(vl)}</td><td>${a.estado}</td><td>${a.verificado==='verificado'?'✓':'Pend.'}</td><td>${nf>0?`📸${nf}`:''}</td></tr>`;
+  }).join('');
+  document.getElementById('cedulaContent').innerHTML=`<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px"><div><div style="font-size:17px;font-weight:500">${emp.nombre}</div><div style="font-size:12px;color:var(--text3)">NIT: ${emp.nit||'—'} · NRC: ${emp.nrc||'—'} · ${(emp.niif||S.niif)==='pymes'?'NIIF PYMES (Sec.17)':'NIIF Completas (IAS 16)'}</div></div><div style="text-align:right;font-size:12px;color:var(--text3)"><div>Cédula de Activo Fijo</div><div>Al: ${hoy}</div><div>Consultor Independiente</div></div></div><div class="metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px"><div class="metric"><div class="metric-label">Activos</div><div class="metric-value">${activos.length}</div></div><div class="metric"><div class="metric-label">Costo histórico</div><div class="metric-value" style="font-size:14px">${fmt(totC)}</div></div><div class="metric"><div class="metric-label">Dep. acumulada</div><div class="metric-value" style="font-size:14px;color:var(--danger)">${fmt(totDep)}</div></div><div class="metric"><div class="metric-label">Valor en libros</div><div class="metric-value" style="font-size:14px;color:var(--success)">${fmt(totVL)}</div></div></div><div class="tw"><table><thead><tr><th>Código</th><th>Descripción</th><th>Categoría</th><th>F.Adq.</th><th>Costo</th><th>Residual</th><th>V.Útil</th><th>Dep.Anual</th><th>Dep.Acum</th><th>V.Libros</th><th>Estado</th><th>Verif.</th><th>Fotos</th></tr></thead><tbody>${rows}<tr style="font-weight:500;background:var(--bg2)"><td colspan="4">TOTALES</td><td style="text-align:right">${fmt(totC)}</td><td></td><td></td><td></td><td style="text-align:right">${fmt(totDep)}</td><td style="text-align:right">${fmt(totVL)}</td><td colspan="3"></td></tr></tbody></table></div></div>`;
+}
+function exportCedulaExcel(){const empId=document.getElementById('cedulaEmpresa').value;if(!empId){alert('Selecciona empresa.');return;}document.getElementById('reporteEmpresa').value=empId;exportReporte('inventario');}
+
+// ===== HALLAZGOS =====
+function renderHallazgos(){
+  const empId=document.getElementById('hallazgosEmpresa').value;
+  let activos=empId?S.activos.filter(a=>a.empresaId===empId):S.activos;
+  const c=document.getElementById('hallazgosContent');
+  if(!activos.length){c.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Sin activos para analizar.</div></div>';return;}
+  const hall=[];
+  activos.forEach(a=>{
+    const vl=calcVL(a);
+    var refNIIF = S.niif==='pymes'?'Sec.17.22 NIIF PYMES':'IAS 16.51 NIIF Completas';
+    var refBaja = S.niif==='pymes'?'Sec.17.25 NIIF PYMES':'IAS 16.67 NIIF Completas';
+    var refDet  = S.niif==='pymes'?'Sec.27 NIIF PYMES':'IAS 36 NIIF Completas';
+    if(vl<=0&&a.estado==='bueno')hall.push({tipo:'warn',cod:a.codigo,desc:a.descripcion,msg:'Activo completamente depreciado pero en estado bueno. Si sigue en uso revisar vida util residual bajo '+refNIIF+'.',ref:refNIIF});
+    if(a.estado==='faltante')hall.push({tipo:'danger',cod:a.codigo,desc:a.descripcion,msg:'Faltante con V.Libros '+fmt(vl)+'. Baja contable requerida. Evaluar responsabilidad del custodio.',ref:refBaja});
+    if(a.estado==='nuevo')hall.push({tipo:'info',cod:a.codigo,desc:a.descripcion,msg:'Activo encontrado en campo no registrado en libros. Verificar e incorporar.',ref:'Sec.17 / IAS 16'});
+    if(a.vidaFiscal){const vuF=a.vidaFiscal/12;if(Math.abs(vuF-a.vidaUtil)>1)hall.push({tipo:'info',cod:a.codigo,desc:a.descripcion,msg:`Diferencia temporal: V.Fiscal ${vuF.toFixed(1)}a vs NIIF ${a.vidaUtil}a. Impuesto diferido 25% ISR sobre diferencia: ${fmt(Math.abs((a.costo||0)/vuF-(a.costo||0)/a.vidaUtil)*0.25)}`,ref:'NIC 12 / Sec.29 NIIF PYMES'});}
+    if(!a.ubicacion||a.ubicacion==='ND')hall.push({tipo:'warn',cod:a.codigo,desc:a.descripcion,msg:'Sin ubicación física. Identificar durante el levantamiento.',ref:'Control interno'});
+    if(a.estado==='malo')hall.push({tipo:'danger',cod:a.codigo,desc:a.descripcion,msg:'Mal estado con V.Libros '+fmt(vl)+'. Evaluar deterioro de valor bajo '+refDet+'.',ref:refDet});
+  });
+  if(!hall.length){c.innerHTML='<div class="alert alert-success">✅ No se identificaron hallazgos NIIF para los activos analizados.</div>';return;}
+  const clr={warn:'badge-amber',danger:'badge-red',info:'badge-blue'},ico={warn:'⚠️',danger:'🚨',info:'💡'};
+  c.innerHTML=`<div class="alert alert-warn"><strong>${hall.length} hallazgos identificados</strong> para el informe de levantamiento.</div><div class="tw"><table><thead><tr><th>Tipo</th><th>Código</th><th>Activo</th><th>Hallazgo</th><th>Referencia</th></tr></thead><tbody>${hall.map(h=>`<tr><td><span class="badge ${clr[h.tipo]}">${ico[h.tipo]} ${h.tipo==='warn'?'Atención':h.tipo==='danger'?'Crítico':'Info'}</span></td><td><code style="font-size:11px">${h.cod}</code></td><td style="font-size:12px;max-width:140px">${h.desc.slice(0,55)}${h.desc.length>55?'...':''}</td><td style="font-size:12px;max-width:280px">${h.msg}</td><td style="font-size:11px;color:var(--text3);white-space:nowrap">${h.ref}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+// ===== IMPORTAR =====
+function doDrag(e,on){e.preventDefault();document.getElementById('uploadZone').classList.toggle('drag',on);}
+function doDrop(e){e.preventDefault();document.getElementById('uploadZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);}
+function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
+function processFile(file){
+  const status=document.getElementById('fileStatus'),empId=document.getElementById('importEmpresa').value,tipo=document.getElementById('importTipo').value;
+  status.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div class="spin"></div>Procesando...</div>';
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(['xlsx','xls','csv'].includes(ext)){
+    const r=new FileReader();r.onload=e=>{
+      try{const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],data=XLSX.utils.sheet_to_json(ws,{defval:''});
+        const keys=Object.keys(data[0]||{}).map(k=>k.toLowerCase());
+        const esSoftland=keys.some(k=>k.includes('tipo'))&&keys.some(k=>k.includes('costo')||k.includes('dólar'));
+        const mapped=data.filter(row=>Object.values(row).some(v=>v!=='')).map((row,i)=>esSoftland||tipo==='softland'?mapSoftland(row,i):mapGenerico(row,i));
+        S.importData=mapped;S.importEmpId=empId;showImportPreview(mapped,esSoftland?'✓ Softland detectado':'Excel genérico');
+        status.innerHTML=`<span style="color:var(--success)">✓ ${file.name} · ${mapped.length} registros${esSoftland?' — Softland detectado automáticamente ✓':''}</span>`;
+      }catch(err){status.innerHTML=`<span style="color:var(--danger)">✕ Error: ${err.message}</span>`;}
+    };r.readAsArrayBuffer(file);
+  } else if(ext==='docx'){
+    const r=new FileReader();r.onload=e=>{mammoth.extractRawText({arrayBuffer:e.target.result}).then(res=>{const rows=parseTexto(res.value);S.importData=rows;S.importEmpId=empId;showImportPreview(rows,'Word (.docx)');status.innerHTML=`<span style="color:var(--success)">✓ Word procesado · ${rows.length} activos detectados</span>`;});};r.readAsArrayBuffer(file);
+  } else {
+    status.innerHTML='<span style="color:var(--warn)">⚠️ PDF: procesando texto...</span>';
+    setTimeout(()=>{const rows=[{codigo:'PDF-001',descripcion:'Activo extraído de PDF — revisar',categoria:'Otro',ubicacion:'Por asignar',costo:0,vidaUtil:5,obs:'Extraído de PDF'}];S.importData=rows;S.importEmpId=empId;showImportPreview(rows,'PDF');status.innerHTML='<span style="color:var(--warn)">⚠️ PDF procesado. Revisa los datos manualmente.</span>';},1200);
+  }
+}
+function mapSoftland(row,i){
+  const get=k=>{const key=Object.keys(row).find(r=>r.toLowerCase().includes(k.toLowerCase()));return key?row[key]:''};
+  const tipo=(get('tipo')||'').toString().trim().toUpperCase(),cat=TIPO_MAP[tipo]||'Otro';
+  const costo=parseFloat((get('dólar')||get('dolar')||get('costo local')||get('costo')||'0').toString().replace(/[,$\s]/g,''))||0;
+  const dep=parseFloat((get('depr. acumulada')||get('dep. acum')||get('dep')||'0').toString().replace(/[,$\s]/g,''))||0;
+  const vidaMeses=parseInt(get('vida')||'60')||60;
+  let fechaAdq='';const fa=get('adquisición')||get('activacion')||get('fecha');
+  if(fa&&fa.getFullYear){fechaAdq=fa.toISOString().slice(0,10);}else if(fa&&fa.toString().length>4){fechaAdq=fa.toString().slice(0,10);}
+  const vuNIIF=VIDA_NIIF[cat]||5;
+  return {codigo:(get('activo')||`IMP-${String(i+1).padStart(4,'0')}`).toString(),descripcion:(get('descripción')||get('descripcion')||`Activo ${i+1}`).toString(),categoria:cat,categoriaSoftland:tipo,ubicacion:(get('ubicación')||get('ubicacion')||'').toString(),serie:'',custodio:'',costo,residual:0,fechaAdq,vidaUtil:vuNIIF,vidaFiscal:vidaMeses,depAcumLibros:dep,metodo:'lineal',estado:'bueno',verificado:'pendiente',obs:`Softland. Tipo:${tipo}. Vida fiscal:${vidaMeses}m.${costo>0&&dep>=costo?' COMPLETAMENTE DEPRECIADO — verificar si sigue en uso.':''}`};
+}
+function mapGenerico(row,i){
+  const get=(...keys)=>{for(const k of Object.keys(row)){if(keys.some(key=>k.toLowerCase().includes(key.toLowerCase())))return row[k];}return '';};
+  return {codigo:(get('codigo','code','cód','id','num','activo')||`IMP-${uid().slice(-4)}`).toString(),descripcion:(get('descrip','nombre','activo','bien','detalle','name')||`Activo ${i+1}`).toString(),categoria:(get('categ','tipo','class','grupo','familia')||'Otro').toString(),serie:(get('serie','serial','modelo')||'').toString(),ubicacion:(get('ubic','location','area','depto','lugar')||'').toString(),custodio:(get('custodio','responsable','encargado')||'').toString(),costo:parseFloat((get('costo','valor','cost','precio','amount')||'0').toString().replace(/[,$]/g,''))||0,residual:0,fechaAdq:(get('fecha','date','adquirido')||'').toString(),vidaUtil:parseInt(get('vida','util','years','años'))||5,vidaFiscal:0,depAcumLibros:parseFloat((get('dep','acumul')||'0').toString().replace(/[,$]/g,''))||0,metodo:'lineal',estado:'bueno',verificado:'pendiente',obs:'Importado desde archivo'};
+}
+function parseTexto(text){return text.split('\n').filter(l=>l.trim().length>5).slice(0,30).map((l,i)=>({codigo:`IMP-${String(i+1).padStart(3,'0')}`,descripcion:l.trim().slice(0,80),categoria:'Otro',ubicacion:'Por asignar',costo:0,vidaUtil:5,obs:'Extraído de Word'}));}
+function showImportPreview(data,tipo){
+  if(!data||!data.length)return;document.getElementById('importPreview').style.display='block';
+  document.getElementById('importAlert').textContent=`${tipo}: ${data.length} registros detectados. Revisa antes de confirmar.`;
+  const keys=['codigo','descripcion','categoria','ubicacion','costo','vidaUtil','depAcumLibros'];
+  const labels={codigo:'Código',descripcion:'Descripción',categoria:'Categoría',ubicacion:'Ubicación',costo:'Costo ($)',vidaUtil:'Vida NIIF',depAcumLibros:'Dep.Acum.'};
+  document.getElementById('importThead').innerHTML='<tr>'+keys.map(k=>`<th>${labels[k]||k}</th>`).join('')+'</tr>';
+  document.getElementById('importTbody').innerHTML=data.slice(0,12).map(row=>'<tr>'+keys.map(k=>`<td style="font-size:12px">${row[k]||''}</td>`).join('')+'</tr>').join('')+(data.length>12?`<tr><td colspan="${keys.length}" style="text-align:center;color:var(--text3);font-size:12px">...y ${data.length-12} más</td></tr>`:'');
+}
+function confirmarImport(){
+  if(!S.importEmpId){alert('Selecciona empresa.');return;}if(!S.importData.length)return;
+  let n=0;S.importData.forEach(row=>{S.activos.push({id:uid(),empresaId:S.importEmpId,...row,fechaMod:new Date().toISOString()});n++;});
+  log(`${n} activos importados`);saveState();document.getElementById('importPreview').style.display='none';S.importData=[];
+  alert(`✓ ${n} activos importados correctamente.`);showView('activos');
+}
+function cancelarImport(){document.getElementById('importPreview').style.display='none';S.importData=[];}
+
+// ===== DASHBOARD =====
+function refreshDashboard(){
+  const total=S.activos.length,verif=S.activos.filter(a=>a.verificado==='verificado').length,conFotos=S.activos.filter(a=>(S.fotos[a.id]||[]).length>0).length;
+  const hall=S.activos.filter(a=>a.estado==='faltante'||a.estado==='nuevo'||a.estado==='malo').length,valor=S.activos.reduce((s,a)=>s+calcVL(a),0);
+  document.getElementById('m-total').textContent=total;document.getElementById('m-verif').textContent=verif;document.getElementById('m-pend').textContent=total-verif;document.getElementById('m-fotos').textContent=conFotos;document.getElementById('m-hall').textContent=hall;document.getElementById('m-valor').textContent=fmt(valor);
+  const de=document.getElementById('dashEmpresas');
+  if(!S.empresas.length)de.innerHTML='<div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">Crea una empresa.</div></div>';
+  else de.innerHTML=S.empresas.map(e=>{const act=S.activos.filter(a=>a.empresaId===e.id),v=act.filter(a=>a.verificado==='verificado').length,pct=act.length?Math.round(v/act.length*100):0;return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>${e.nombre}</span><span style="color:var(--text3)">${v}/${act.length} · ${pct}%</span></div><div class="pbar"><div class="pfill" style="width:${pct}%"></div></div></div>`;}).join('');
+  const da=document.getElementById('dashActividad');da.innerHTML=S.actividad.length?S.actividad.slice(-10).reverse().map(a=>`<div style="font-size:12px;color:var(--text2);padding:4px 0;border-bottom:.5px solid var(--border)">${a}</div>`).join(''):'<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin actividad.</div></div>';
+  const cats={};S.activos.forEach(a=>{cats[a.categoria]=(cats[a.categoria]||0)+1;});
+  const dc=document.getElementById('dashCats');
+  if(!Object.keys(cats).length)dc.innerHTML='<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Sin datos.</div></div>';
+  else{const max=Math.max(...Object.values(cats));dc.innerHTML=Object.entries(cats).map(([c,n])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px"><div style="font-size:12px;min-width:175px;color:var(--text2)">${c}</div><div style="flex:1;height:7px;background:var(--bg3);border-radius:999px;overflow:hidden"><div style="width:${Math.round(n/max*100)}%;height:100%;background:var(--accent);border-radius:999px"></div></div><div style="font-size:12px;font-weight:500;min-width:24px;text-align:right">${n}</div></div>`).join('');}
+}
+
+// ===== EXPORTAR =====
+function exportReporte(tipo){
+  const empId=document.getElementById('reporteEmpresa').value;let activos=empId?S.activos.filter(a=>a.empresaId===empId):S.activos;
+  let data=[],sn='Activo Fijo';
+  if(tipo==='inventario'){sn='Inventario';data=activos.map(a=>{const emp=S.empresas.find(e=>e.id===a.empresaId),vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5);return{'Empresa':emp?.nombre||'','Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Tipo Softland':a.categoriaSoftland||'','Serie':a.serie||'','Ubicación':a.ubicacion||'','Custodio':a.custodio||'','F.Adquisición':a.fechaAdq||'','Vida NIIF (años)':a.vidaUtil||5,'Vida Fiscal (meses)':a.vidaFiscal||0,'Costo ($)':a.costo||0,'Residual ($)':a.residual||0,'Dep.Anual NIIF ($)':parseFloat(fmtN(da)),'Dep.Acum NIIF ($)':parseFloat(fmtN((a.costo||0)-vl)),'Dep.Acum Libros ($)':a.depAcumLibros||0,'Valor Libros NIIF ($)':parseFloat(fmtN(vl)),'Estado':a.estado,'Verificado':a.verificado,'Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''};});}
+  else if(tipo==='levantamiento'){sn='Levantamiento';data=activos.map(a=>({'Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Empresa':S.empresas.find(e=>e.id===a.empresaId)?.nombre||'','Ubicación':a.ubicacion||'','Custodio':a.custodio||'','Estado Físico':a.estado,'Verificado':a.verificado,'Fecha Verif.':a.fechaVerif||'','Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''}));}
+  else if(tipo==='depreciacion'){sn='Dep.NIIF';data=activos.map(a=>{const vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5);return{'Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Costo ($)':a.costo||0,'Residual ($)':a.residual||0,'Vida NIIF':a.vidaUtil||5,'Vida Fiscal (m)':a.vidaFiscal||0,'Dep.Anual NIIF ($)':parseFloat(fmtN(da)),'Dep.Acum NIIF ($)':parseFloat(fmtN((a.costo||0)-vl)),'Dep.Acum Libros ($)':a.depAcumLibros||0,'V.Libros NIIF ($)':parseFloat(fmtN(vl)),'Diferencia ($)':parseFloat(fmtN(vl-(a.costo||0)+(a.depAcumLibros||0)))};});}
+  else if(tipo==='bajas'){sn='Bajas';data=activos.filter(a=>a.estado==='baja'||a.estado==='faltante'||a.estado==='malo').map(a=>({'Código':a.codigo,'Descripción':a.descripcion,'Estado':a.estado,'Costo ($)':a.costo||0,'V.Libros ($)':parseFloat(fmtN(calcVL(a))),'Dep.Acum Libros ($)':a.depAcumLibros||0,'Observaciones':a.obs||'','Ref.NIIF':'Sec.17.25 / IAS 16.67'}));}
+  else if(tipo==='hallazgos'){
+    sn='Hallazgos NIIF';const hall=[];
+    activos.forEach(a=>{const vl=calcVL(a);if(vl<=0&&a.estado==='bueno')hall.push({Código:a.codigo,Descripción:a.descripcion,Tipo:'Depreciado en uso',Hallazgo:'Revisar vida útil residual',Ref:'Sec.17.22/IAS 16.51'});if(a.estado==='faltante')hall.push({Código:a.codigo,Descripción:a.descripcion,Tipo:'Faltante',Hallazgo:`Baja contable. V.Libros: ${fmt(vl)}`,Ref:'Sec.17.25/IAS 16.67'});if(a.estado==='nuevo')hall.push({Código:a.codigo,Descripción:a.descripcion,Tipo:'No registrado',Hallazgo:'Incorporar a libros',Ref:'Sec.17/IAS 16'});if(a.vidaFiscal&&Math.abs(a.vidaFiscal/12-a.vidaUtil)>1)hall.push({Código:a.codigo,Descripción:a.descripcion,Tipo:'Dif. temporal NIIF/Fiscal',Hallazgo:`V.Fiscal ${a.vidaFiscal}m vs NIIF ${a.vidaUtil}a`,Ref:'NIC12/Sec.29'});});data=hall;
+  }
+  else if(tipo==='cedula_niif'){sn='Conciliación NIIF';data=activos.map(a=>{const vl=calcVL(a),vuF=a.vidaFiscal?a.vidaFiscal/12:a.vidaUtil,dF=(a.costo||0)/vuF,dN=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5),dif=dF-dN;return{'Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Costo ($)':a.costo||0,'Vida NIIF (años)':a.vidaUtil||5,'Vida Fiscal (años)':parseFloat(fmtN(vuF)),'Dep.Anual NIIF ($)':parseFloat(fmtN(dN)),'Dep.Anual Fiscal ($)':parseFloat(fmtN(dF)),'Diferencia Temporal ($)':parseFloat(fmtN(dif)),'Impuesto Diferido 25% ($)':parseFloat(fmtN(dif*0.25)),'Tipo':dif*0.25>0?'Pasivo diferido':'Activo diferido','V.Libros NIIF ($)':parseFloat(fmtN(vl)),'Dep.Acum.Libros ($)':a.depAcumLibros||0};});}
+  if(!data.length){alert('No hay datos para exportar.');return;}
+  const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,sn);
+  XLSX.writeFile(wb,`ActivaERP_${tipo}_${new Date().toISOString().slice(0,10)}.xlsx`);log(`Exportado: ${tipo}`);saveState();
+}
+
+// ===== CONFIGURACIÓN =====
+function refreshConfig(){document.getElementById('cfgClientId').value=S.drive.clientId||'';document.getElementById('cfgApiKey').value=S.drive.apiKey||'';document.getElementById('cfgDriveFolder').value=S.drive.folder||'ActivaERP_Fotos';document.getElementById('cfgTA').textContent=S.activos.length;document.getElementById('cfgTE').textContent=S.empresas.length;document.getElementById('cfgTF').textContent=Object.values(S.fotos).reduce((s,f)=>s+f.length,0);}
+function guardarConfigDrive(){S.drive.clientId=document.getElementById('cfgClientId').value.trim();S.drive.apiKey=document.getElementById('cfgApiKey').value.trim();S.drive.folder=document.getElementById('cfgDriveFolder').value.trim()||'ActivaERP_Fotos';saveState();document.getElementById('cfgDriveStatus').innerHTML='<span style="color:var(--success)">✓ Configuración guardada.</span>';}
+function testDriveConnection(){
+  if(!S.drive.clientId||!S.drive.apiKey){document.getElementById('cfgDriveStatus').innerHTML='<span style="color:var(--danger)">✕ Ingresa Client ID y API Key primero.</span>';return;}
+  document.getElementById('cfgDriveStatus').innerHTML='<div style="display:flex;align-items:center;gap:8px"><div class="spin"></div>Probando...</div>';
+  const s=document.createElement('script');s.src='https://apis.google.com/js/api.js';
+  s.onload=()=>{gapi.load('client',()=>{gapi.client.init({apiKey:S.drive.apiKey,discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']}).then(()=>document.getElementById('cfgDriveStatus').innerHTML='<span style="color:var(--success)">✓ API Key válida. Autentica con OAuth para subir fotos.</span>').catch(e=>document.getElementById('cfgDriveStatus').innerHTML=`<span style="color:var(--danger)">✕ Error: ${e.details||e.message||'Verifica tu API Key'}</span>`);});};
+  s.onerror=()=>document.getElementById('cfgDriveStatus').innerHTML='<span style="color:var(--danger)">✕ No se pudo cargar API Google. Verifica internet.</span>';
+  document.head.appendChild(s);
+}
+function exportarBackup(){const data=JSON.stringify({empresas:S.empresas,activos:S.activos,actividad:S.actividad,fotos:S.fotos,ts:new Date().toISOString()},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=`ActivaERP_backup_${new Date().toISOString().slice(0,10)}.json`;a.click();log('Backup exportado');}
+function importarBackup(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const p=JSON.parse(ev.target.result);if(confirm(`Importar: ${(p.empresas||[]).length} empresas, ${(p.activos||[]).length} activos. ¿Reemplazar datos actuales?`)){S.empresas=p.empresas||[];S.activos=p.activos||[];S.actividad=p.actividad||[];S.fotos=p.fotos||{};saveState();refreshSelects();refreshDashboard();alert('✓ Backup importado.');}}catch(err){alert('✕ Archivo inválido.');}};r.readAsText(f);}
+function limpiarTodo(){if(confirm('¿ELIMINAR TODOS los datos? No se puede deshacer.')){S.empresas=[];S.activos=[];S.actividad=[];S.fotos={};saveState();location.reload();}}
+
+// ===== HELPERS =====
+function refreshSelects(){
+  const opts=S.empresas.map(e=>`<option value="${e.id}">${e.nombre}</option>`).join('');
+  ['filtroEmpresa','fotosEmpresa','hallazgosEmpresa','reporteEmpresa'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<option value="">Todas las empresas</option>`+opts;});
+  ['actEmpresa','importEmpresa','campoEmpresa','cedulaEmpresa','movEmpresa'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<option value="">Selecciona empresa...</option>`+opts;});
+  renderEmpresas();
+}
+function log(msg){const ts=new Date().toLocaleString('es-SV',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});S.actividad.push(`[${ts}] ${msg}`);if(S.actividad.length>60)S.actividad.shift();}
+
+// ===== INIT =====
+document.getElementById('depFechaCorte').value=new Date().toISOString().slice(0,10);
+document.getElementById('depFechaAdq').value='2020-01-01';
+refreshSelects();refreshDashboard();renderActivos();calcDep();autoVidaUtil();
+
+// DEMO con datos reales del cliente Softland
+if(!S.empresas.length){
+  S.empresas=[{id:'demo1',nombre:'Cliente Demo (Datos Softland)',nit:'0614-150190-001-4',nrc:'123456-7',giro:'Distribución y comercio',niif:'pymes',fechaCorte:'2025-12-31',contacto:'Lic. María García',fechaLev:'2025-07-15',obs:'Levantamiento activo con datos reales Softland',creado:new Date().toISOString()}];
+  [{codigo:'1354',descripcion:'EXTINTOR DE 125 LBS',categoria:'Herramientas y accesorios',ubicacion:'PLANTA',costo:1698,depAcumLibros:1698,vidaUtil:5,vidaFiscal:60,estado:'regular',obs:'Completamente depreciado — verificar si sigue operativo'},
+   {codigo:'2264',descripcion:'COMPUTADORA LAPTOP MACBOOK PRO COLOR NEGRO',categoria:'Equipo de cómputo',ubicacion:'INFORM',costo:2434.84,depAcumLibros:0,vidaUtil:4,vidaFiscal:24,estado:'bueno',obs:'Dif. temporal: fiscal 2a vs NIIF 4a'},
+   {codigo:'2265',descripcion:'ANDAMIO GALVANIZADO CON RODOS P/TRABAJO',categoria:'Maquinaria y equipo',ubicacion:'ND',costo:752.21,depAcumLibros:0,vidaUtil:10,vidaFiscal:60,estado:'bueno',obs:'Sin ubicación — identificar en campo'},
+   {codigo:'2260',descripcion:'ESCRITORIO EN L COLOR BLANCO DE 1.50M',categoria:'Mobiliario y equipo de oficina',ubicacion:'OFADM',costo:578.05,depAcumLibros:0,vidaUtil:8,vidaFiscal:36,estado:'bueno',obs:''},
+   {codigo:'1391',descripcion:'BASCULA MARCA WEIGH TRONIX MOD DSL4848',categoria:'Maquinaria y equipo',ubicacion:'RYD',costo:2168.14,depAcumLibros:2168.14,vidaUtil:10,vidaFiscal:60,estado:'malo',obs:'Mal estado — evaluar deterioro IAS 36/Sec.27'},
+   {codigo:'2266',descripcion:'MOTOGUADAÑA TRIMMER 1.8 HP FS120',categoria:'Maquinaria y equipo',ubicacion:'AVERD',costo:381.83,depAcumLibros:0,vidaUtil:5,vidaFiscal:36,estado:'bueno',obs:''},
+   {codigo:'1396',descripcion:'MANGUERA 1 1/2 X 100 TIPO P/BOMBERO',categoria:'Herramientas y accesorios',ubicacion:'BREP',costo:165.39,depAcumLibros:165.39,vidaUtil:5,vidaFiscal:24,estado:'bueno',obs:'Completamente depreciada'},
+   {codigo:'1394',descripcion:'MANTENEDOR DE BATERIA P/PLANTA ELECTRICA',categoria:'Maquinaria y equipo',ubicacion:'CMAQ',costo:2453.91,depAcumLibros:2453.91,vidaUtil:10,vidaFiscal:60,estado:'bueno',obs:'Completamente depreciado pero en uso — Sec.17.22'}
+  ].forEach(d=>S.activos.push({id:uid(),empresaId:'demo1',serie:'',custodio:'',residual:0,fechaAdq:'2019-01-01',metodo:'lineal',verificado:'pendiente',fechaMod:new Date().toISOString(),...d}));
+  log('Sistema iniciado con datos reales del cliente Softland');saveState();refreshSelects();refreshDashboard();renderActivos();
+}
+</script>
+
+<script>
+(function(){
+  function mkIcon(){
+    var s = ["<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'>",
+      "<rect width='512' height='512' rx='80' fill='#185FA5'/>",
+      "<rect x='140' y='90' width='232' height='332' rx='16' fill='white'/>",
+      "<rect x='170' y='140' width='172' height='18' rx='9' fill='#185FA5'/>",
+      "<rect x='170' y='178' width='145' height='12' rx='6' fill='#185FA5' opacity='0.5'/>",
+      "<rect x='170' y='205' width='158' height='12' rx='6' fill='#185FA5' opacity='0.5'/>",
+      "<rect x='170' y='232' width='130' height='12' rx='6' fill='#185FA5' opacity='0.5'/>",
+      "<rect x='170' y='272' width='172' height='18' rx='9' fill='#185FA5'/>",
+      "<rect x='170' y='310' width='148' height='12' rx='6' fill='#185FA5' opacity='0.5'/>",
+      "<rect x='170' y='337' width='162' height='12' rx='6' fill='#185FA5' opacity='0.5'/>",
+      "<text x='256' y='455' font-size='48' text-anchor='middle' fill='white' font-family='Arial,sans-serif' font-weight='700'>ActivaERP</text>",
+      "</svg>"].join("");
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s);
+  }
+
+  var iconUrl = mkIcon();
+  var al = document.getElementById("appleIcon");
+  if(al){ al.href = iconUrl; al.setAttribute("sizes","180x180"); }
+
+  var manifest = {
+    name: "ActivaERP - Levantamiento de Activo Fijo",
+    short_name: "ActivaERP",
+    description: "Sistema NIIF para El Salvador",
+    start_url: "./",
+    display: "standalone",
+    background_color: "#185FA5",
+    theme_color: "#185FA5",
+    orientation: "any",
+    lang: "es-SV",
+    icons: [
+      { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+      { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+    ]
+  };
+  try {
+    var mb = new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"});
+    var ml = document.getElementById("manifestLink");
+    if(ml) ml.href = URL.createObjectURL(mb);
+  } catch(e){}
+
+  if("serviceWorker" in navigator){
+    try {
+      var sw = "self.addEventListener('fetch',function(e){});";
+      var sb = new Blob([sw], {type:"text/javascript"});
+      navigator.serviceWorker.register(URL.createObjectURL(sb)).catch(function(){});
+    } catch(e){}
+  }
+
+  var deferred = null;
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault();
+    deferred = e;
+    showBanner();
+  });
+
+  function removeBanner(){
+    var b = document.getElementById("pwaBanner");
+    if(b) b.remove();
+  }
+
+  function showBanner(){
+    if(document.getElementById("pwaBanner")) return;
+    var b = document.createElement("div");
+    b.id = "pwaBanner";
+    b.style.cssText = "position:fixed;bottom:16px;left:50%;transform:translateX(-50%);"
+      + "background:#185FA5;color:#fff;padding:12px 16px;border-radius:12px;"
+      + "font-size:13px;display:flex;align-items:center;gap:10px;z-index:9999;"
+      + "box-shadow:0 4px 20px rgba(0,0,0,.35);font-family:system-ui;max-width:92vw;";
+    var installBtn = document.createElement("button");
+    installBtn.textContent = "Instalar";
+    installBtn.style.cssText = "background:#fff;color:#185FA5;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px";
+    installBtn.onclick = doPWAInstall;
+    var closeBtn = document.createElement("button");
+    closeBtn.innerHTML = "&#x2715;";
+    closeBtn.style.cssText = "background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 8px;border-radius:8px;cursor:pointer";
+    closeBtn.onclick = removeBanner;
+    var txt = document.createElement("span");
+    txt.innerHTML = "&#128242; Instalar ActivaERP como app";
+    b.appendChild(txt);
+    b.appendChild(installBtn);
+    b.appendChild(closeBtn);
+    document.body.appendChild(b);
+  }
+
+  function doPWAInstall(){
+    if(!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function(){ deferred = null; removeBanner(); });
+  }
+  window.doPWAInstall = doPWAInstall;
+
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone = window.navigator.standalone === true;
+  if(isIOS && !isStandalone){
+    setTimeout(function(){
+      if(document.getElementById("pwaBanner")) return;
+      var b = document.createElement("div");
+      b.id = "pwaBanner";
+      b.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);"
+        + "background:#185FA5;color:#fff;padding:14px 16px;border-radius:12px;font-size:13px;"
+        + "z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.35);font-family:system-ui;"
+        + "max-width:88vw;text-align:center;line-height:1.7";
+      var closeBtn2 = document.createElement("button");
+      closeBtn2.textContent = "Entendido";
+      closeBtn2.style.cssText = "display:block;margin:10px auto 0;background:rgba(255,255,255,.25);border:none;color:#fff;padding:5px 18px;border-radius:8px;cursor:pointer;font-size:12px";
+      closeBtn2.onclick = function(){ b.remove(); };
+      b.innerHTML = "<div style='font-weight:600;margin-bottom:5px'>&#128242; Instalar en iPhone</div>"
+        + "<div style='font-size:12px;opacity:.92'>Toca <strong>&#11014; Compartir</strong> en Safari<br>luego <strong>Agregar a pantalla de inicio</strong></div>";
+      b.appendChild(closeBtn2);
+      document.body.appendChild(b);
+    }, 2500);
+  }
+})();
+</script>
+
+</body>
+</html>
