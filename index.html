@@ -438,37 +438,92 @@ tr:hover td{background:var(--bg2)}
 
 <!-- REPORTES -->
 <div class="view" id="view-reportes">
-  <div class="fg" style="max-width:320px;margin-bottom:20px"><label>Empresa para el reporte</label><select id="reporteEmpresa"><option value="">Todas las empresas</option></select></div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px">
-    <div class="card" style="cursor:pointer" onclick="exportReporte('inventario')"><div style="font-size:26px;margin-bottom:8px">📊</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Inventario Completo</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Todos los activos con valores, depreciación NIIF y estado físico.</div><span class="badge badge-blue">Excel (.xlsx)</span></div>
-    <div class="card" style="cursor:pointer" onclick="exportReporte('levantamiento')"><div style="font-size:26px;margin-bottom:8px">📋</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Reporte de Levantamiento</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Activos verificados, faltantes y observaciones de campo.</div><span class="badge badge-blue">Excel (.xlsx)</span></div>
-    <div class="card" style="cursor:pointer" onclick="exportReporte('depreciacion')"><div style="font-size:26px;margin-bottom:8px">📉</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Cédula de Depreciación</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Depreciación NIIF vs fiscal, movimientos por categoría.</div><span class="badge badge-green">Excel (.xlsx)</span></div>
-    <div class="card" style="cursor:pointer" onclick="exportReporte('bajas')"><div style="font-size:26px;margin-bottom:8px">🗑️</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Activos para Dar de Baja</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Faltantes, mal estado y depreciados para acuerdo de baja contable.</div><span class="badge badge-red">Excel (.xlsx)</span></div>
-    <div class="card" style="cursor:pointer" onclick="exportReporte('hallazgos')"><div style="font-size:26px;margin-bottom:8px">🔍</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Informe de Hallazgos NIIF</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Diferencias NIIF vs libros, activos no registrados, ajustes sugeridos.</div><span class="badge badge-amber">Excel (.xlsx)</span></div>
-    <div class="card" style="cursor:pointer" onclick="exportReporte('cedula_niif')"><div style="font-size:26px;margin-bottom:8px">⚖️</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">Conciliación NIIF / Fiscal</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">Diferencias temporarias e impuesto diferido 25% ISR El Salvador.</div><span class="badge badge-purple">Excel (.xlsx)</span></div>
-    <div class="card" style="cursor:pointer;border:2px solid var(--accent)" onclick="generarInformeWord()">
-      <div style="font-size:26px;margin-bottom:8px">📝</div>
-      <div style="font-size:14px;font-weight:500;margin-bottom:5px">Informe Completo para Cliente</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Portada, resumen ejecutivo, avance, hallazgos NIIF, cédula y recomendaciones. Listo para firmar.</div>
-      <span class="badge badge-blue">Word (.docx)</span>
-      <span class="badge badge-green" style="margin-left:4px">Nuevo ✨</span>
-    </div>
-    <div class="card" style="cursor:pointer;border:2px solid var(--teal)" onclick="generarReporteLevantamiento()">
-      <div style="font-size:26px;margin-bottom:8px">🔎</div>
-      <div style="font-size:14px;font-weight:500;margin-bottom:5px">Reporte Detallado de Levantamiento</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Ficha por activo con descripcion, estado, ubicacion, custodio, fotos y hallazgos NIIF asociados.</div>
-      <span class="badge badge-teal">HTML → PDF</span>
-      <span class="badge badge-green" style="margin-left:4px">Con fotos ✨</span>
-    </div>
-    <div class="card" style="cursor:pointer;border:2px solid var(--success)" onclick="exportReporte('softland_levantamiento')">
-      <div style="font-size:26px;margin-bottom:8px">📊</div>
-      <div style="font-size:14px;font-weight:500;margin-bottom:5px">Excel de Levantamiento para Cliente</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Formato similar a Softland + columnas: Verificado (SI/NO), Estado Fisico, Observaciones y Hallazgos NIIF asociados.</div>
-      <span class="badge badge-green">Excel (.xlsx)</span>
-      <span class="badge badge-blue" style="margin-left:4px">Para entregar ✨</span>
+  <div class="fg" style="max-width:320px;margin-bottom:20px">
+    <label>Empresa para el reporte</label>
+    <select id="reporteEmpresa"><option value="">Todas las empresas</option></select>
+  </div>
+
+  <div style="margin-bottom:12px" class="alert alert-info">📊 Selecciona la empresa y elige el reporte que necesitas generar.</div>
+
+  <div style="margin-bottom:20px">
+    <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Reportes Excel</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="card" style="cursor:pointer" onclick="exportReporte('inventario')">
+        <div style="font-size:22px;margin-bottom:6px">📊</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">Inventario Completo</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Todos los activos con valores y depreciación NIIF.</div>
+        <span class="badge badge-blue">Excel</span>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="exportReporte('levantamiento')">
+        <div style="font-size:22px;margin-bottom:6px">📋</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">Reporte de Levantamiento</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Verificados, faltantes y observaciones de campo.</div>
+        <span class="badge badge-blue">Excel</span>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="exportReporte('depreciacion')">
+        <div style="font-size:22px;margin-bottom:6px">📉</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">Cédula de Depreciación</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Depreciación NIIF vs fiscal por categoría.</div>
+        <span class="badge badge-green">Excel</span>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="exportReporte('bajas')">
+        <div style="font-size:22px;margin-bottom:6px">🗑️</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">Activos para Dar de Baja</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Faltantes y mal estado para acuerdo de baja.</div>
+        <span class="badge badge-red">Excel</span>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="exportReporte('hallazgos')">
+        <div style="font-size:22px;margin-bottom:6px">🔍</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">Hallazgos NIIF</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Diferencias NIIF vs libros y ajustes sugeridos.</div>
+        <span class="badge badge-amber">Excel</span>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="exportReporte('cedula_niif')">
+        <div style="font-size:22px;margin-bottom:6px">⚖️</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">Conciliación NIIF / Fiscal</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Diferencias temporarias e impuesto diferido 25%.</div>
+        <span class="badge badge-purple">Excel</span>
+      </div>
+      <div class="card" style="cursor:pointer;border:2px solid var(--success);grid-column:span 3" onclick="exportReporte('softland_levantamiento')">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-size:28px">📊</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px;color:var(--success-text)">Excel de Levantamiento para Cliente</div>
+            <div style="font-size:12px;color:var(--text3)">Formato similar a Softland + columnas: <strong>VERIFICADO (SI/NO)</strong>, Estado Físico, Observaciones de campo y Hallazgos NIIF asociados. Listo para entregar al cliente.</div>
+          </div>
+          <div><span class="badge badge-green">Excel</span> <span class="badge badge-teal" style="margin-left:4px">Nuevo ✨</span></div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+
+  <div>
+    <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Informes para entregar al cliente (PDF)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="card" style="cursor:pointer;border:2px solid var(--accent)" onclick="generarInformeWord()">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="font-size:28px">📝</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px;color:var(--accent-text)">Informe Completo para Cliente</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Portada, resumen ejecutivo, avance por categoría, hallazgos NIIF, cédula de depreciación, recomendaciones y firmas. Se convierte a PDF con Ctrl+P.</div>
+            <span class="badge badge-blue">HTML → PDF</span>
+            <span class="badge badge-green" style="margin-left:4px">Nuevo ✨</span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="cursor:pointer;border:2px solid var(--teal)" onclick="generarReporteLevantamiento()">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="font-size:28px">🔎</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px;color:var(--teal-text)">Reporte Detallado de Levantamiento</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Ficha por cada activo con descripción, estado, ubicación, custodio, fotografías incluidas y hallazgos NIIF asociados. Se convierte a PDF con Ctrl+P.</div>
+            <span class="badge badge-teal">HTML → PDF</span>
+            <span class="badge badge-green" style="margin-left:4px">Con fotos ✨</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <!-- EMPRESAS -->
 <div class="view" id="view-empresas">
