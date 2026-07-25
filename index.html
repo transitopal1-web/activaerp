@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#185FA5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,7 +14,7 @@
 <link rel="manifest" id="manifestLink">
 <link rel="apple-touch-icon" id="appleIcon">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ActivaERP — Levantamiento de Activo Fijo</title>
+<title>ActivaERP v4 — Levantamiento de Activo Fijo</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
@@ -188,7 +191,7 @@ tr:hover td{background:var(--bg2)}
 </div>
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
-  <div class="sidebar-logo"><div class="logo-text">📋 ActivaERP</div><div class="logo-sub">Levantamiento Activo Fijo · SV</div></div>
+  <div class="sidebar-logo"><div class="logo-text">📋 ActivaERP <span style="font-size:10px;opacity:.7">v4</span></div><div class="logo-sub">Levantamiento Activo Fijo · SV</div></div>
   <div class="sidebar-section">
     <div class="section-label">Principal</div>
     <button class="nav-item active" onclick="showView('dashboard')"><span class="nav-icon">📊</span>Dashboard</button>
@@ -590,8 +593,8 @@ tr:hover td{background:var(--bg2)}
 <script>
 // ===== STATE =====
 let S={niif:'pymes',empresas:[],activos:[],actividad:[],fotos:{},editId:null,importData:[],importEmpId:null,drive:{clientId:'',apiKey:'',folder:'ActivaERP_Fotos'}};
-function loadState(){try{const s=localStorage.getItem('activaerp_v3');if(s){const p=JSON.parse(s);S.empresas=p.empresas||[];S.activos=p.activos||[];S.actividad=p.actividad||[];S.fotos=p.fotos||{};S.drive=p.drive||S.drive;}}catch(e){}}
-function saveState(){try{localStorage.setItem('activaerp_v3',JSON.stringify({empresas:S.empresas,activos:S.activos,actividad:S.actividad,fotos:S.fotos,drive:S.drive}));}catch(e){alert('⚠️ Almacenamiento lleno. Exporta un backup primero.');}}
+function loadState(){try{const s=localStorage.getItem('activaerp_v4');if(s){const p=JSON.parse(s);S.empresas=p.empresas||[];S.activos=p.activos||[];S.actividad=p.actividad||[];S.fotos=p.fotos||{};S.drive=p.drive||S.drive;}}catch(e){}}
+function saveState(){try{localStorage.setItem('activaerp_v4',JSON.stringify({empresas:S.empresas,activos:S.activos,actividad:S.actividad,fotos:S.fotos,drive:S.drive}));}catch(e){alert('⚠️ Almacenamiento lleno. Exporta un backup primero.');}}
 loadState();
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const fmt=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n||0);
