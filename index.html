@@ -14,7 +14,7 @@
 <link rel="manifest" id="manifestLink">
 <link rel="apple-touch-icon" id="appleIcon">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ActivaERP v4 — Levantamiento de Activo Fijo</title>
+<title>ActivaERP v5 — Levantamiento de Activo Fijo</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
@@ -101,6 +101,16 @@ tr:hover td{background:var(--bg2)}
 .photo-add:hover{border-color:var(--accent);background:var(--accent-bg);color:var(--accent-text)}
 .campo-card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:10px}
 .campo-code{font-size:11px;background:var(--bg2);padding:2px 8px;border-radius:4px;font-family:monospace}
+.campo-code.big{font-size:14px;font-weight:700;padding:3px 10px;background:#185FA5;color:#fff}
+.campo-notas{background:#FFF8E1;border:1px solid #F2D27A;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:13px;line-height:1.45;white-space:pre-wrap;word-break:break-word;color:#4A3B00}
+.campo-notas b{color:#7A5A00}
+.campo-det{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;color:var(--text2);margin:6px 0 10px}
+.campo-det div{min-width:0;overflow-wrap:anywhere}
+.campo-det span{color:var(--text3)}
+.campo-det .full{grid-column:1/-1}
+mark{background:#FFE066;color:inherit;padding:0 1px;border-radius:2px}
+.campo-more{display:block;width:100%;margin:6px 0 20px;padding:12px}
+@media(max-width:520px){.campo-det{grid-template-columns:1fr}}
 .niif-toggle{display:flex;gap:4px}
 .niif-opt{padding:4px 11px;border-radius:999px;font-size:11px;font-weight:500;cursor:pointer;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2)}
 .niif-opt.active{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -191,7 +201,7 @@ tr:hover td{background:var(--bg2)}
 </div>
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
-  <div class="sidebar-logo"><div class="logo-text">📋 ActivaERP <span style="font-size:10px;opacity:.7">v4</span></div><div class="logo-sub">Levantamiento Activo Fijo · SV</div></div>
+  <div class="sidebar-logo"><div class="logo-text">📋 ActivaERP <span style="font-size:10px;opacity:.7">v5</span></div><div class="logo-sub">Levantamiento Activo Fijo · SV</div></div>
   <div class="sidebar-section">
     <div class="section-label">Principal</div>
     <button class="nav-item active" onclick="showView('dashboard')"><span class="nav-icon">📊</span>Dashboard</button>
@@ -254,13 +264,14 @@ tr:hover td{background:var(--bg2)}
 
 <!-- CAMPO -->
 <div class="view" id="view-campo">
-  <div class="alert alert-info">📱 <strong>Vista de campo.</strong> Optimizada para celular. Verifica activos, cambia estado y toma fotos aquí mismo.</div>
+  <div class="alert alert-info">📱 <strong>Vista de campo.</strong> Filtra por ubicación y busca por serie, motor, chasis o marca: la búsqueda incluye las <b>notas de Softland</b>.</div>
   <div class="srow no-print">
-    <select id="campoEmpresa" onchange="renderCampo()" style="flex:1;min-width:160px"><option value="">Selecciona empresa...</option></select>
-    <select id="campoFiltro" onchange="renderCampo()" style="max-width:140px">
-      <option value="">Todos</option><option value="pendiente">Pendientes</option><option value="verificado">Verificados</option>
+    <select id="campoEmpresa" onchange="S._ubicEmp=null;S.campoN=50;document.getElementById('campoUbic').value='';renderCampo()" style="flex:1;min-width:160px"><option value="">Selecciona empresa...</option></select>
+    <select id="campoFiltro" onchange="S.campoN=50;renderCampo()" style="max-width:170px">
+      <option value="pendiente" selected>Pendientes</option><option value="verificado">Verificados</option><option value="">Todos (vigentes)</option><option value="retirado">Retirados en Softland</option>
     </select>
-    <input type="text" id="campoBuscar" placeholder="Buscar código..." oninput="renderCampo()" style="max-width:140px">
+    <select id="campoUbic" onchange="S.campoN=50;renderCampo()" style="flex:1;min-width:160px"><option value="">Todas las ubicaciones</option></select>
+    <input type="search" id="campoBuscar" placeholder="🔎 Código, descripción, serie, motor, chasis, marca, ubicación..." oninput="S.campoN=50;clearTimeout(S._cbT);S._cbT=setTimeout(renderCampo,200)" style="flex:1 1 100%;width:100%;max-width:none;min-width:0;font-size:15px">
   </div>
   <div id="campoStats" style="margin-bottom:12px;display:none">
     <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
@@ -506,7 +517,8 @@ tr:hover td{background:var(--bg2)}
     <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Activos: <strong id="cfgTA">0</strong> · Empresas: <strong id="cfgTE">0</strong> · Fotos: <strong id="cfgTF">0</strong></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-sm" onclick="exportarBackup()">⬇ Backup JSON</button>
-      <button class="btn btn-sm" onclick="document.getElementById('importBackupInput').click()">⬆ Importar backup</button>
+      <button class="btn btn-sm" onclick="document.getElementById('importBackupInput').click()">⬆ Importar backup (fusiona)</button>
+      <button class="btn btn-sm" onclick="liberarFotosRespaldadas()" style="background:var(--warn,#c77c00);color:#fff">📤 Liberar fotos respaldadas</button>
       <button class="btn btn-sm btn-danger" onclick="limpiarTodo()">🗑 Limpiar todo</button>
     </div>
     <input type="file" id="importBackupInput" style="display:none" accept=".json" onchange="importarBackup(event)">
@@ -593,15 +605,44 @@ tr:hover td{background:var(--bg2)}
 <script>
 // ===== STATE =====
 let S={niif:'pymes',empresas:[],activos:[],actividad:[],fotos:{},editId:null,importData:[],importEmpId:null,drive:{clientId:'',apiKey:'',folder:'ActivaERP_Fotos'}};
-function loadState(){try{const s=localStorage.getItem('activaerp_v4');if(s){const p=JSON.parse(s);S.empresas=p.empresas||[];S.activos=p.activos||[];S.actividad=p.actividad||[];S.fotos=p.fotos||{};S.drive=p.drive||S.drive;}}catch(e){}}
-function saveState(){try{localStorage.setItem('activaerp_v4',JSON.stringify({empresas:S.empresas,activos:S.activos,actividad:S.actividad,fotos:S.fotos,drive:S.drive}));}catch(e){alert('⚠️ Almacenamiento lleno. Exporta un backup primero.');}}
+const LS_KEY='activaerp_v4';
+const fixFecha=v=>{if(v===null||v===undefined||v==='')return '';if(v instanceof Date&&!isNaN(v)){const d=new Date(v.getTime()-v.getTimezoneOffset()*60000);return d.toISOString().slice(0,10);}const s=String(v).trim();if(/^\d{5}(\.\d+)?$/.test(s)){return new Date(Math.round((parseFloat(s)-25569)*86400000)).toISOString().slice(0,10);}return s.slice(0,10);};
+const esc=s=>String(s===null||s===undefined?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SOFT_FIELDS=['descripcion','categoriaSoftland','ubicSoftland','notas','responsable','proveedor','codBarras','fechaAdq','fechaActiv','retirado','fechaRetiro','costo','depAcumLibros','vidaFiscal','fechaSoftland'];
+const CAMPO_FIELDS=['ubicacion','custodio','estado','obs','verificado','fechaVerif','serie','fechaMod','vidaUtil','residual','metodo'];
+function applyState(p){S.empresas=p.empresas||[];S.activos=(p.activos||[]).map(a=>{if(a.fechaAdq)a.fechaAdq=fixFecha(a.fechaAdq);return a;});S.actividad=p.actividad||[];S.fotos=p.fotos||{};S.drive=p.drive||S.drive;}
+function loadState(){try{const s=localStorage.getItem(LS_KEY);if(s)applyState(JSON.parse(s));}catch(e){}}
+// IndexedDB: mucho más espacio que localStorage (5 MB)
+let _db=null;S._ready=false;S._fotoSig=null;
+function idbOpen(){if(_db)return Promise.resolve(_db);return new Promise((res,rej)=>{const r=indexedDB.open('activaerp',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{_db=r.result;res(_db);};r.onerror=()=>rej(r.error);});}
+function idbGet(k){return idbOpen().then(db=>new Promise((res,rej)=>{const q=db.transaction('kv','readonly').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}));}
+function idbPut(obj){return idbOpen().then(db=>new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite'),st=tx.objectStore('kv');Object.keys(obj).forEach(k=>st.put(obj[k],k));tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('abort'));}));}
+function fotoSig(){return Object.keys(S.fotos).map(k=>k+':'+(S.fotos[k]||[]).map(f=>f.ts).join(',')).join('|');}
+function saveState(){
+  if(!S._ready)return;
+  const base={empresas:S.empresas,activos:S.activos,actividad:S.actividad,drive:S.drive,ts:new Date().toISOString()};
+  const toPut={state:base};const sig=fotoSig();if(sig!==S._fotoSig)toPut.fotos=S.fotos;
+  idbPut(toPut).then(()=>{S._fotoSig=sig;try{localStorage.removeItem(LS_KEY);}catch(e){}})
+  .catch(err=>{try{localStorage.setItem(LS_KEY,JSON.stringify({...base,fotos:S.fotos}));}catch(e){alert('⚠️ No se pudo guardar en este dispositivo. Exporta un backup ahora.');}});
+}
 loadState();
+function bootStorage(){
+  if(!('indexedDB' in window)){S._ready=true;return;}
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+  Promise.all([idbGet('state'),idbGet('fotos')]).then(([st,fo])=>{
+    if(st){applyState({...st,fotos:fo||{}});S._fotoSig=fotoSig();S._ready=true;}
+    else{S._ready=true;if(S.activos.length||S.empresas.length)saveState();}
+    refreshSelects();refreshDashboard();renderActivos();
+    if(document.getElementById('view-campo').classList.contains('active'))renderCampo();
+    if(document.getElementById('view-empresas').classList.contains('active'))renderEmpresas();
+  }).catch(()=>{S._ready=true;});
+}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const fmt=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n||0);
 const fmtN=n=>parseFloat(n||0).toFixed(2);
 const VIDA_NIIF={'Edificios e instalaciones':30,'Maquinaria y equipo':10,'Vehículos':5,'Equipo de cómputo':4,'Mobiliario y equipo de oficina':8,'Herramientas y accesorios':5,'Mejoras a propiedades':10,'Otro':5};
 const VIDA_DEP={edificios:[30,40],maquinaria:[10,15],vehiculos:[5,6],computadoras:[4,5],muebles:[8,10],herramientas:[3,5],otro:[5,10]};
-const TIPO_MAP={EQUI:'Maquinaria y equipo',EQUA:'Maquinaria y equipo',MAQU:'Maquinaria y equipo',MAQA:'Maquinaria y equipo',EQCA:'Maquinaria y equipo',ACC:'Herramientas y accesorios',ACCA:'Herramientas y accesorios',HYEP:'Herramientas y accesorios',MEOF:'Mobiliario y equipo de oficina',COMP:'Equipo de cómputo',COMU:'Equipo de cómputo',VDCA:'Vehículos',VEHI:'Vehículos',CAM:'Vehículos',EDIF:'Edificios e instalaciones',EDIC:'Edificios e instalaciones',EDII:'Edificios e instalaciones',INST:'Edificios e instalaciones'};
+const TIPO_MAP={EQUI:'Maquinaria y equipo',EQUA:'Maquinaria y equipo',MAQU:'Maquinaria y equipo',MAQA:'Maquinaria y equipo',EQCA:'Maquinaria y equipo',ACC:'Herramientas y accesorios',ACCA:'Herramientas y accesorios',HYEP:'Herramientas y accesorios',MEOF:'Mobiliario y equipo de oficina',COMP:'Equipo de cómputo',COMU:'Equipo de cómputo',VDCA:'Vehículos',VEHI:'Vehículos',CAM:'Vehículos',EDIF:'Edificios e instalaciones',EDIC:'Edificios e instalaciones',EDII:'Edificios e instalaciones',INST:'Edificios e instalaciones',VEH1:'Vehículos',VEH2:'Vehículos',PALL:'Herramientas y accesorios'};
 
 // ===== NAV =====
 function showView(id){
@@ -685,7 +726,7 @@ function renderEmpresas(){
   const c=document.getElementById('empresasList');
   if(!S.empresas.length){c.innerHTML='<div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">No hay empresas.</div></div>';return;}
   c.innerHTML=S.empresas.map(e=>{
-    const act=S.activos.filter(a=>a.empresaId===e.id),v=act.filter(a=>a.verificado==='verificado').length,pct=act.length?Math.round(v/act.length*100):0;
+    const act=S.activos.filter(a=>!a.retirado&&a.empresaId===e.id),v=act.filter(a=>a.verificado==='verificado').length,pct=act.length?Math.round(v/act.length*100):0;
     const nf=act.filter(a=>(S.fotos[a.id]||[]).length>0).length;
     return `<div class="card" style="margin-bottom:12px"><div style="display:flex;gap:12px;align-items:flex-start">
       <div style="flex:1">
@@ -701,7 +742,7 @@ function renderEmpresas(){
         <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <button class="btn btn-sm btn-primary" onclick="showView('campo');setTimeout(()=>{document.getElementById('campoEmpresa').value='${e.id}';renderCampo();},100)">📱 Campo</button>
+        <button class="btn btn-sm btn-primary" onclick="showView('campo');setTimeout(()=>{document.getElementById('campoEmpresa').value='${e.id}';S._ubicEmp=null;renderCampo();},100)">📱 Campo</button>
         <button class="btn btn-sm btn-danger" onclick="eliminarEmpresa('${e.id}')">Eliminar</button>
       </div>
     </div></div>`;
@@ -750,13 +791,13 @@ function renderActivos(){
   let list=S.activos.filter(a=>{
     if(empF&&a.empresaId!==empF)return false;if(estF&&a.estado!==estF)return false;
     if(catF&&a.categoria!==catF)return false;
-    if(search&&!`${a.codigo} ${a.descripcion} ${a.serie||''} ${a.ubicacion||''}`.toLowerCase().includes(search))return false;
+    if(search&&!`${a.codigo} ${a.descripcion} ${a.serie||''} ${a.ubicacion||''} ${a.ubicSoftland||''} ${a.notas||''} ${a.custodio||''}`.toLowerCase().includes(search))return false;
     return true;
   });
   const sbc={bueno:'badge-green',regular:'badge-amber',malo:'badge-red',baja:'badge-red',faltante:'badge-red',nuevo:'badge-purple'};
   document.getElementById('activosBody').innerHTML=list.length?list.map(a=>{
     const emp=S.empresas.find(e=>e.id===a.empresaId),vl=calcVL(a),nf=(S.fotos[a.id]||[]).length;
-    return `<tr><td><code style="font-size:11px">${a.codigo}</code></td><td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.descripcion}</td><td><span class="badge badge-teal" style="font-size:10px">${a.categoria}</span></td><td style="font-size:11px">${emp?.nombre||'—'}</td><td style="font-size:12px">${a.ubicacion||'—'}</td><td><span class="badge ${sbc[a.estado]||'badge-blue'}">${a.estado}</span></td><td style="font-size:12px">${fmt(a.costo)}</td><td style="font-size:12px">${fmt(vl)}</td><td style="text-align:center">${nf>0?`<span class="badge badge-purple">📸${nf}</span>`:'—'}</td><td><span class="badge ${a.verificado==='verificado'?'badge-green':'badge-amber'}">${a.verificado==='verificado'?'✓':'Pend.'}</span></td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="editActivo('${a.id}')">Editar</button> <button class="btn btn-sm" onclick="abrirCampoModal('${a.id}')">📸</button> <button class="btn btn-sm btn-danger" onclick="eliminarActivo('${a.id}')">✕</button></td></tr>`;
+    return `<tr><td><code style="font-size:11px">${a.codigo}</code></td><td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(a.notas||'')}">${a.retirado?'<span class="badge badge-red" style="font-size:9px">RETIRADO</span> ':''}${esc(a.descripcion)}</td><td><span class="badge badge-teal" style="font-size:10px">${a.categoria}</span></td><td style="font-size:11px">${emp?.nombre||'—'}</td><td style="font-size:12px">${a.ubicacion||'—'}</td><td><span class="badge ${sbc[a.estado]||'badge-blue'}">${a.estado}</span></td><td style="font-size:12px">${fmt(a.costo)}</td><td style="font-size:12px">${fmt(vl)}</td><td style="text-align:center">${nf>0?`<span class="badge badge-purple">📸${nf}</span>`:'—'}</td><td><span class="badge ${a.verificado==='verificado'?'badge-green':'badge-amber'}">${a.verificado==='verificado'?'✓':'Pend.'}</span></td><td style="white-space:nowrap"><button class="btn btn-sm" onclick="editActivo('${a.id}')">Editar</button> <button class="btn btn-sm" onclick="abrirCampoModal('${a.id}')">📸</button> <button class="btn btn-sm btn-danger" onclick="eliminarActivo('${a.id}')">✕</button></td></tr>`;
   }).join(''):'<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text3)">No se encontraron activos.</td></tr>';
   const cats=[...new Set(S.activos.map(a=>a.categoria))];
   document.getElementById('filtroCategoria').innerHTML=`<span class="chip active" data-all="1" onclick="selCat(this,'')">Todas</span>`+cats.map(c=>`<span class="chip" data-cat="${c}" onclick="selCat(this,'${c}')">${c}</span>`).join('');
@@ -771,58 +812,89 @@ function editActivo(id){
 function eliminarActivo(id){if(!confirm('¿Eliminar?'))return;S.activos=S.activos.filter(a=>a.id!==id);delete S.fotos[id];saveState();renderActivos();refreshDashboard();}
 
 // ===== CAMPO =====
+function campoUbicOpts(empId){
+  const sel=document.getElementById('campoUbic');if(!sel)return;
+  if(S._ubicEmp===empId&&sel.options.length>1){return;}
+  S._ubicEmp=empId;const cur=sel.value,cnt={};
+  S.activos.filter(a=>a.empresaId===empId&&!a.retirado).forEach(a=>{const u=a.ubicSoftland||a.ubicacion||'(sin ubicación)';if(!cnt[u])cnt[u]={t:0,p:0};cnt[u].t++;if(a.verificado!=='verificado')cnt[u].p++;});
+  sel.innerHTML='<option value="">📍 Todas las ubicaciones</option>'+Object.keys(cnt).sort().map(u=>`<option value="${esc(u)}">${esc(u)} — ${cnt[u].p} pend. / ${cnt[u].t}</option>`).join('');
+  if(cur&&cnt[cur])sel.value=cur;
+}
+function hl(txt,q){let h=esc(txt);if(!q)return h;q.split(/\s+/).filter(w=>w.length>1).forEach(w=>{const re=new RegExp('('+esc(w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');h=h.replace(re,'<mark>$1</mark>');});return h;}
+function campoDetalle(a,q){
+  const ubS=a.ubicSoftland||'',ubC=a.ubicacion||'';
+  return `${a.notas?`<div class="campo-notas"><b>🔎 Identificación (Softland):</b>\n${hl(a.notas,q)}</div>`:''}
+    <div class="campo-det">
+      <div>📍 <span>Ubic. Softland:</span> <b>${hl(ubS||ubC||'—',q)}</b></div>
+      ${ubC&&ubC!==ubS?`<div>📌 <span>Encontrado en:</span> ${hl(ubC,q)}</div>`:''}
+      <div>🏷 <span>Tipo:</span> ${esc(a.categoriaSoftland||'')} · ${esc(a.categoria||'')}</div>
+      <div>👤 <span>Responsable:</span> ${esc(a.responsable||'—')}</div>
+      ${a.custodio?`<div>🙋 <span>Custodio campo:</span> ${hl(a.custodio,q)}</div>`:''}
+      ${a.serie?`<div>🔢 <span>Serie/placa campo:</span> ${hl(a.serie,q)}</div>`:''}
+      ${a.proveedor?`<div>🏭 <span>Proveedor:</span> ${hl(a.proveedor,q)}</div>`:''}
+      <div>📅 <span>Adquirido:</span> ${esc(a.fechaAdq||'—')}</div>
+      <div>💰 <span>Costo:</span> ${fmt(a.costo)}</div>
+      ${a.codBarras?`<div>▦ <span>Cód. barras:</span> ${esc(a.codBarras)}</div>`:''}
+      ${a.retirado?`<div class="full" style="color:var(--danger)">⛔ Retirado en Softland el ${esc(a.fechaRetiro||'')}</div>`:''}
+      ${a.obs?`<div class="full">📝 <span>Obs. campo:</span> ${hl(a.obs,q)}</div>`:''}
+    </div>`;
+}
 function renderCampo(){
-  const empId=document.getElementById('campoEmpresa').value,filtro=document.getElementById('campoFiltro').value,buscar=(document.getElementById('campoBuscar').value||'').toLowerCase();
+  const empId=document.getElementById('campoEmpresa').value,filtro=document.getElementById('campoFiltro').value,buscar=(document.getElementById('campoBuscar').value||'').toLowerCase().trim();
+  const ubicF=(document.getElementById('campoUbic')||{}).value||'';
   const c=document.getElementById('campoList'),stats=document.getElementById('campoStats');
   if(!empId){c.innerHTML='<div class="empty"><div class="empty-icon">📱</div><div class="empty-text">Selecciona una empresa para comenzar.</div></div>';stats.style.display='none';return;}
-  let lista=S.activos.filter(a=>a.empresaId===empId);
+  campoUbicOpts(empId);
+  const base=S.activos.filter(a=>a.empresaId===empId);
+  let lista=filtro==='retirado'?base.filter(a=>a.retirado):base.filter(a=>!a.retirado);
   if(filtro==='pendiente')lista=lista.filter(a=>a.verificado!=='verificado');
   if(filtro==='verificado')lista=lista.filter(a=>a.verificado==='verificado');
-  if(buscar)lista=lista.filter(a=>`${a.codigo} ${a.descripcion}`.toLowerCase().includes(buscar));
-  const total=S.activos.filter(a=>a.empresaId===empId).length,verif=S.activos.filter(a=>a.empresaId===empId&&a.verificado==='verificado').length,pct=total?Math.round(verif/total*100):0;
+  if(ubicF)lista=lista.filter(a=>(a.ubicSoftland||a.ubicacion||'(sin ubicación)')===ubicF);
+  if(buscar){const ws=buscar.split(/\s+/);lista=lista.filter(a=>{const t=`${a.codigo} ${a.descripcion} ${a.notas||''} ${a.ubicSoftland||''} ${a.ubicacion||''} ${a.custodio||''} ${a.serie||''} ${a.proveedor||''} ${a.responsable||''} ${a.obs||''}`.toLowerCase();return ws.every(w=>t.includes(w));});}
+  const vig=base.filter(a=>!a.retirado),total=vig.length,verif=vig.filter(a=>a.verificado==='verificado').length,pct=total?Math.round(verif/total*100):0;
   stats.style.display='block';document.getElementById('cs-total').textContent=total;document.getElementById('cs-verif').textContent=verif;document.getElementById('cs-pend').textContent=total-verif;document.getElementById('cs-bar').style.width=pct+'%';
   if(!lista.length){c.innerHTML='<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No hay activos en esta vista.</div></div>';return;}
+  const N=S.campoN||50,vis=lista.slice(0,N);
   const sbc={bueno:'badge-green',regular:'badge-amber',malo:'badge-red',baja:'badge-red',faltante:'badge-red',nuevo:'badge-purple'};
-  c.innerHTML=lista.map(a=>{
-    const nf=(S.fotos[a.id]||[]).length,vl=calcVL(a);
-    return `<div class="campo-card">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">
-            <span class="campo-code">${a.codigo}</span>
-            <span class="badge ${a.verificado==='verificado'?'badge-green':'badge-amber'}">${a.verificado==='verificado'?'✓ Verif.':'Pendiente'}</span>
-            <span class="badge ${sbc[a.estado]||'badge-blue'}">${a.estado}</span>
-            ${nf>0?`<span class="badge badge-purple">📸${nf}</span>`:''}
-          </div>
-          <div style="font-size:15px;font-weight:500;margin-bottom:3px">${a.descripcion}</div>
-          <div style="font-size:12px;color:var(--text3)">📍 ${a.ubicacion||'Sin ubicación'} · 👤 ${a.custodio||'Sin custodio'}</div>
-          <div style="font-size:12px;color:var(--text3)">💰 Costo: ${fmt(a.costo)} · V.Libros NIIF: ${fmt(vl)}</div>
-        </div>
+  c.innerHTML=`<div style="font-size:12px;color:var(--text3);margin:0 0 8px">${lista.length} activo(s) en esta vista${lista.length>N?` · mostrando ${N}`:''}</div>`+vis.map(a=>{
+    const nf=(S.fotos[a.id]||[]).length,ok=a.verificado==='verificado';
+    return `<div class="campo-card" id="cc_${a.id}"${ok?' style="border-left:4px solid var(--success)"':''}>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <span class="campo-code big">${hl(a.codigo,buscar)}</span>
+        <span class="badge ${ok?'badge-green':'badge-amber'}">${ok?'✓ Verif.':'Pendiente'}</span>
+        <span class="badge ${sbc[a.estado]||'badge-blue'}">${esc(a.estado)}</span>
+        ${nf>0?`<span class="badge badge-purple">📸${nf}</span>`:''}
+        ${a.retirado?'<span class="badge badge-red">RETIRADO</span>':''}
       </div>
+      <div style="font-size:15px;font-weight:600;line-height:1.3">${hl(a.descripcion,buscar)}</div>
+      ${campoDetalle(a,buscar)}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-success btn-sm" onclick="verificarRapido('${a.id}')"${a.verificado==='verificado'?' style="opacity:.5"':''}>✓ Verificar</button>
-        <button class="btn btn-primary btn-sm" onclick="abrirCampoModal('${a.id}')">📸 Fotos / Detalles</button>
-        ${nf<3?`<button class="btn btn-sm" onclick="tomarFotoRapida('${a.id}')">📷 Foto rápida (${nf}/3)</button>`:''}
+        <button class="btn btn-success btn-sm" onclick="verificarRapido('${a.id}')"${ok?' style="opacity:.5"':''}>✓ Verificar</button>
+        <button class="btn btn-primary btn-sm" onclick="abrirCampoModal('${a.id}')">✏️ Detalles / Fotos</button>
+        ${nf<3?`<button class="btn btn-sm" onclick="tomarFotoRapida('${a.id}')">📷 Foto (${nf}/3)</button>`:''}
       </div>
     </div>`;
-  }).join('');
+  }).join('')+(lista.length>N?`<button class="btn campo-more" onclick="S.campoN=(S.campoN||50)+50;renderCampo()">Mostrar 50 más (${lista.length-N} restantes)</button>`:'');
 }
-function verificarRapido(id){const a=S.activos.find(x=>x.id===id);if(!a)return;a.verificado='verificado';a.fechaVerif=new Date().toISOString();log('Verificado: '+a.descripcion);saveState();renderCampo();refreshDashboard();}
+function verificarRapido(id){const a=S.activos.find(x=>x.id===id);if(!a)return;a.verificado='verificado';a.fechaVerif=new Date().toISOString();a.fechaMod=a.fechaVerif;log('Verificado: '+a.codigo+' '+a.descripcion);saveState();S._ubicEmp=null;renderCampo();refreshDashboard();}
 function abrirCampoModal(id){
   const a=S.activos.find(x=>x.id===id);if(!a)return;
   const fotos=S.fotos[id]||[];
   document.getElementById('modalCampoBody').innerHTML=`
-    <div style="margin-bottom:14px">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px"><span class="campo-code">${a.codigo}</span><span class="badge badge-teal">${a.categoria}</span></div>
-      <div style="font-size:16px;font-weight:500">${a.descripcion}</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:3px">Costo: ${fmt(a.costo)} · V.Libros NIIF: ${fmt(calcVL(a))}</div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap"><span class="campo-code big">${esc(a.codigo)}</span><span class="badge badge-teal">${esc(a.categoria)}</span>${a.retirado?'<span class="badge badge-red">RETIRADO</span>':''}</div>
+      <div style="font-size:16px;font-weight:600">${esc(a.descripcion)}</div>
+      ${campoDetalle(a,'')}
     </div>
     <div class="form-row">
       <div class="fg"><label>Estado físico</label><select id="cfEstado"><option value="bueno"${a.estado==='bueno'?' selected':''}>Bueno</option><option value="regular"${a.estado==='regular'?' selected':''}>Regular</option><option value="malo"${a.estado==='malo'?' selected':''}>Malo</option><option value="baja"${a.estado==='baja'?' selected':''}>Dado de baja</option><option value="faltante"${a.estado==='faltante'?' selected':''}>Faltante</option><option value="nuevo"${a.estado==='nuevo'?' selected':''}>Nuevo hallazgo</option></select></div>
-      <div class="fg"><label>Ubicación encontrada</label><input type="text" id="cfUbicacion" value="${a.ubicacion||''}" placeholder="Ubicación actual"></div>
+      <div class="fg"><label>Ubicación encontrada <span style="color:var(--text3)">(Softland: ${esc(a.ubicSoftland||'—')})</span></label><input type="text" id="cfUbicacion" value="${esc(a.ubicacion||'')}" placeholder="Ubicación actual"></div>
     </div>
-    <div class="fg"><label>Custodio verificado</label><input type="text" id="cfCustodio" value="${a.custodio||''}"></div>
-    <div class="fg"><label>Observaciones de campo</label><textarea id="cfObs" rows="2">${a.obs||''}</textarea></div>
+    <div class="form-row">
+      <div class="fg"><label>Custodio verificado</label><input type="text" id="cfCustodio" value="${esc(a.custodio||'')}"></div>
+      <div class="fg"><label>Serie / placa vista en campo</label><input type="text" id="cfSerie" value="${esc(a.serie||'')}" placeholder="Si difiere o no está en notas"></div>
+    </div>
+    <div class="fg"><label>Observaciones de campo</label><textarea id="cfObs" rows="2">${esc(a.obs||'')}</textarea></div>
     <div style="margin-top:14px">
       <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px">📸 Fotos del activo (máx. 3)</div>
       <div class="photo-grid">
@@ -835,8 +907,8 @@ function abrirCampoModal(id){
 }
 function guardarCampo(id){
   const a=S.activos.find(x=>x.id===id);if(!a)return;
-  a.estado=document.getElementById('cfEstado').value;a.ubicacion=document.getElementById('cfUbicacion').value;a.custodio=document.getElementById('cfCustodio').value;a.obs=document.getElementById('cfObs').value;a.verificado='verificado';a.fechaVerif=new Date().toISOString();
-  log('Campo guardado: '+a.descripcion);saveState();closeModal('modalCampo');renderCampo();refreshDashboard();
+  a.estado=document.getElementById('cfEstado').value;a.ubicacion=document.getElementById('cfUbicacion').value;a.custodio=document.getElementById('cfCustodio').value;a.serie=document.getElementById('cfSerie').value;a.obs=document.getElementById('cfObs').value;a.verificado='verificado';a.fechaVerif=new Date().toISOString();a.fechaMod=a.fechaVerif;
+  log('Campo guardado: '+a.codigo+' '+a.descripcion);saveState();closeModal('modalCampo');S._ubicEmp=null;renderCampo();refreshDashboard();
 }
 function tomarFotoRapida(id){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.setAttribute('capture','environment');inp.onchange=e=>agregarFotoFile(id,e.target.files[0]);inp.click();}
 function agregarFoto(id,inp){if(inp.files[0])agregarFotoFile(id,inp.files[0]);}
@@ -848,9 +920,9 @@ function agregarFotoFile(id,file){
       const canvas=document.createElement('canvas');const MAX=800;let w=img.width,h=img.height;
       if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
       if(!S.fotos[id])S.fotos[id]=[];S.fotos[id].push({data:canvas.toDataURL('image/jpeg',0.72),ts:new Date().toISOString()});
-      const a=S.activos.find(x=>x.id===id);log('Foto: '+(a?.descripcion||id));saveState();
+      const a=S.activos.find(x=>x.id===id);if(a)a.fechaMod=new Date().toISOString();log('Foto: '+(a?.descripcion||id));saveState();
       if(document.getElementById('modalCampo').classList.contains('open'))abrirCampoModal(id);
-      refreshDashboard();
+      refreshDashboard();if(document.getElementById('view-campo').classList.contains('active')&&!document.getElementById('modalCampo').classList.contains('open'))renderCampo();
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
 }
@@ -895,7 +967,7 @@ function calcDep(){
 function showDepTab(id,btn){document.querySelectorAll('[id^="depTab-"]').forEach(t=>t.style.display='none');document.getElementById('depTab-'+id).style.display='block';document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');}
 function renderMovimientos(){
   const empId=document.getElementById('movEmpresa').value,anio=parseInt(document.getElementById('movAnio').value);if(!empId)return;
-  const activos=S.activos.filter(a=>a.empresaId===empId);if(!activos.length){document.getElementById('movResult').innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin activos.</div></div>';return;}
+  const activos=S.activos.filter(a=>!a.retirado&&a.empresaId===empId);if(!activos.length){document.getElementById('movResult').innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin activos.</div></div>';return;}
   const cats=[...new Set(activos.map(a=>a.categoria))];let rows='',tS=0,tD=0,tF=0;
   cats.forEach(cat=>{const g=activos.filter(a=>a.categoria===cat);let sI=0,dA=0,sF=0;
     g.forEach(a=>{const c=a.costo||0,r=a.residual||0,v=a.vidaUtil||5,da=(c-r)/v,adq=a.fechaAdq?new Date(a.fechaAdq).getFullYear():2020,añosDep=Math.max(0,(anio-1)-adq),dAcumI=Math.min(da*añosDep,c-r);sI+=c-dAcumI;dA+=da;sF+=Math.max(r,c-dAcumI-da);});
@@ -906,7 +978,7 @@ function renderMovimientos(){
 // ===== CÉDULAS =====
 function renderCedulas(){
   const empId=document.getElementById('cedulaEmpresa').value;if(!empId)return;
-  const emp=S.empresas.find(e=>e.id===empId),activos=S.activos.filter(a=>a.empresaId===empId);
+  const emp=S.empresas.find(e=>e.id===empId),activos=S.activos.filter(a=>!a.retirado&&a.empresaId===empId);
   if(!activos.length){document.getElementById('cedulaContent').innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin activos.</div></div>';return;}
   const hoy=new Date().toLocaleDateString('es-SV'),totC=activos.reduce((s,a)=>s+(a.costo||0),0),totVL=activos.reduce((s,a)=>s+calcVL(a),0),totDep=totC-totVL;
   const rows=activos.map(a=>{const vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5),depAcum=(a.costo||0)-vl,nf=(S.fotos[a.id]||[]).length;
@@ -919,7 +991,7 @@ function exportCedulaExcel(){const empId=document.getElementById('cedulaEmpresa'
 // ===== HALLAZGOS =====
 function renderHallazgos(){
   const empId=document.getElementById('hallazgosEmpresa').value;
-  let activos=empId?S.activos.filter(a=>a.empresaId===empId):S.activos;
+  let activos=S.activos.filter(a=>!a.retirado&&(!empId||a.empresaId===empId));
   const c=document.getElementById('hallazgosContent');
   if(!activos.length){c.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Sin activos para analizar.</div></div>';return;}
   const hall=[];
@@ -950,11 +1022,11 @@ function processFile(file){
   const ext=file.name.split('.').pop().toLowerCase();
   if(['xlsx','xls','csv'].includes(ext)){
     const r=new FileReader();r.onload=e=>{
-      try{const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],data=XLSX.utils.sheet_to_json(ws,{defval:''});
+      try{const wb=XLSX.read(e.target.result,{type:'array',cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],data=XLSX.utils.sheet_to_json(ws,{defval:''});
         const keys=Object.keys(data[0]||{}).map(k=>k.toLowerCase());
         const esSoftland=keys.some(k=>k.includes('tipo'))&&keys.some(k=>k.includes('costo')||k.includes('dólar'));
         const mapped=data.filter(row=>Object.values(row).some(v=>v!=='')).map((row,i)=>esSoftland||tipo==='softland'?mapSoftland(row,i):mapGenerico(row,i));
-        S.importData=mapped;S.importEmpId=empId;showImportPreview(mapped,esSoftland?'✓ Softland detectado':'Excel genérico');
+        S.importData=mapped;S.importEmpId=empId;let extra='';if(empId){const ex=new Set(S.activos.filter(a=>a.empresaId===empId).map(a=>String(a.codigo).trim()));const nEx=mapped.filter(m=>ex.has(String(m.codigo).trim())).length,nRet=mapped.filter(m=>m.retirado).length;extra=` — ${nEx} ya existen (se ACTUALIZAN sin tocar tu trabajo de campo), ${mapped.length-nEx} nuevos, ${nRet} retirados en Softland`;}showImportPreview(mapped,(esSoftland?'✓ Softland detectado':'Excel genérico')+extra);
         status.innerHTML=`<span style="color:var(--success)">✓ ${file.name} · ${mapped.length} registros${esSoftland?' — Softland detectado automáticamente ✓':''}</span>`;
       }catch(err){status.innerHTML=`<span style="color:var(--danger)">✕ Error: ${err.message}</span>`;}
     };r.readAsArrayBuffer(file);
@@ -966,15 +1038,17 @@ function processFile(file){
   }
 }
 function mapSoftland(row,i){
-  const get=k=>{const key=Object.keys(row).find(r=>r.toLowerCase().includes(k.toLowerCase()));return key?row[key]:''};
-  const tipo=(get('tipo')||'').toString().trim().toUpperCase(),cat=TIPO_MAP[tipo]||'Otro';
-  const costo=parseFloat((get('dólar')||get('dolar')||get('costo local')||get('costo')||'0').toString().replace(/[,$\s]/g,''))||0;
-  const dep=parseFloat((get('depr. acumulada')||get('dep. acum')||get('dep')||'0').toString().replace(/[,$\s]/g,''))||0;
-  const vidaMeses=parseInt(get('vida')||'60')||60;
-  let fechaAdq='';const fa=get('adquisición')||get('activacion')||get('fecha');
-  if(fa&&fa.getFullYear){fechaAdq=fa.toISOString().slice(0,10);}else if(fa&&fa.toString().length>4){fechaAdq=fa.toString().slice(0,10);}
-  const vuNIIF=VIDA_NIIF[cat]||5;
-  return {codigo:(get('activo')||`IMP-${String(i+1).padStart(4,'0')}`).toString(),descripcion:(get('descripción')||get('descripcion')||`Activo ${i+1}`).toString(),categoria:cat,categoriaSoftland:tipo,ubicacion:(get('ubicación')||get('ubicacion')||'').toString(),serie:'',custodio:'',costo,residual:0,fechaAdq,vidaUtil:vuNIIF,vidaFiscal:vidaMeses,depAcumLibros:dep,metodo:'lineal',estado:'bueno',verificado:'pendiente',obs:`Softland. Tipo:${tipo}. Vida fiscal:${vidaMeses}m.${costo>0&&dep>=costo?' COMPLETAMENTE DEPRECIADO — verificar si sigue en uso.':''}`};
+  const ks=Object.keys(row);
+  const get=(...names)=>{for(const n of names){const k=ks.find(r=>r.trim().toLowerCase()===n);if(k!==undefined&&row[k]!==''&&row[k]!==null)return row[k];}for(const n of names){const k=ks.find(r=>r.toLowerCase().includes(n));if(k!==undefined&&row[k]!==''&&row[k]!==null)return row[k];}return '';};
+  const num=v=>parseFloat(String(v===''||v===null?'0':v).replace(/[,$\s]/g,''))||0;
+  const tipo=String(get('tipo')).trim().toUpperCase(),cat=TIPO_MAP[tipo]||'Otro';
+  const costo=num(get('costo dólares','costo dolares','costo local','dólar','costo'));
+  const dep=num(get('depr. acumulada dólar fiscal','depr. acumulada local fiscal','depr. acumulada','dep. acum'));
+  const vidaMeses=parseInt(get('vida útil fiscal','vida util fiscal','vida'))||60;
+  const fRet=fixFecha(get('fecha retiro'));
+  const ubic=String(get('ubicación','ubicacion')).trim();
+  const notas=[...new Set([String(get('notas')).trim(),String(get('detalle (notas)')).trim()].filter(Boolean))].join('\n');
+  return {codigo:String(get('activo')||`IMP-${String(i+1).padStart(4,'0')}`).trim(),descripcion:String(get('descripción','descripcion')||`Activo ${i+1}`).trim(),categoria:cat,categoriaSoftland:tipo,ubicacion:ubic,ubicSoftland:ubic,notas,responsable:String(get('responsable')).trim(),proveedor:String(get('proveedor')).trim(),codBarras:String(get('código barras','codigo barras')).trim(),fechaActiv:fixFecha(get('f. activación','f. activacion')),retirado:!!fRet,fechaRetiro:fRet,serie:'',custodio:'',costo,residual:0,fechaAdq:fixFecha(get('f. adquisición','f. adquisicion','adquisición','fecha')),vidaUtil:VIDA_NIIF[cat]||5,vidaFiscal:vidaMeses,depAcumLibros:dep,metodo:'lineal',estado:'bueno',verificado:'pendiente',obs:'',fechaSoftland:new Date().toISOString()};
 }
 function mapGenerico(row,i){
   const get=(...keys)=>{for(const k of Object.keys(row)){if(keys.some(key=>k.toLowerCase().includes(key.toLowerCase())))return row[k];}return '';};
@@ -991,22 +1065,34 @@ function showImportPreview(data,tipo){
 }
 function confirmarImport(){
   if(!S.importEmpId){alert('Selecciona empresa.');return;}if(!S.importData.length)return;
-  let n=0;S.importData.forEach(row=>{S.activos.push({id:uid(),empresaId:S.importEmpId,...row,fechaMod:new Date().toISOString()});n++;});
-  log(`${n} activos importados`);saveState();document.getElementById('importPreview').style.display='none';S.importData=[];
-  alert(`✓ ${n} activos importados correctamente.`);showView('activos');
+  const idx={};S.activos.forEach(a=>{if(a.empresaId===S.importEmpId)idx[String(a.codigo).trim()]=a;});
+  let nuevos=0,act=0,ret=0;const now=new Date().toISOString();
+  S.importData.forEach(row=>{
+    const ex=idx[String(row.codigo).trim()];
+    if(row.retirado)ret++;
+    if(ex){
+      SOFT_FIELDS.forEach(f=>{if(row[f]!==undefined)ex[f]=row[f];});
+      if(row.categoria&&row.categoria!=='Otro')ex.categoria=row.categoria;
+      if(ex.verificado!=='verificado'&&row.ubicacion&&(!ex.ubicacion||!/\s/.test(ex.ubicacion)))ex.ubicacion=row.ubicacion;
+      ex.fechaSoftland=now;act++;
+    }else{const n={id:uid(),empresaId:S.importEmpId,...row,fechaMod:now,fechaSoftland:now};S.activos.push(n);idx[String(row.codigo).trim()]=n;nuevos++;}
+  });
+  log(`Softland: ${act} actualizados, ${nuevos} nuevos, ${ret} retirados`);saveState();document.getElementById('importPreview').style.display='none';S.importData=[];S._ubicEmp=null;
+  alert(`✓ Importación lista\n\n• ${act} activos actualizados (tu trabajo de campo se conserva)\n• ${nuevos} activos nuevos\n• ${ret} retirados en Softland (ocultos en Campo)`);showView('activos');
 }
 function cancelarImport(){document.getElementById('importPreview').style.display='none';S.importData=[];}
 
 // ===== DASHBOARD =====
 function refreshDashboard(){
-  const total=S.activos.length,verif=S.activos.filter(a=>a.verificado==='verificado').length,conFotos=S.activos.filter(a=>(S.fotos[a.id]||[]).length>0).length;
-  const hall=S.activos.filter(a=>a.estado==='faltante'||a.estado==='nuevo'||a.estado==='malo').length,valor=S.activos.reduce((s,a)=>s+calcVL(a),0);
+  const AV=S.activos.filter(a=>!a.retirado);
+  const total=AV.length,verif=AV.filter(a=>a.verificado==='verificado').length,conFotos=AV.filter(a=>(S.fotos[a.id]||[]).length>0).length;
+  const hall=AV.filter(a=>a.estado==='faltante'||a.estado==='nuevo'||a.estado==='malo').length,valor=AV.reduce((s,a)=>s+calcVL(a),0);
   document.getElementById('m-total').textContent=total;document.getElementById('m-verif').textContent=verif;document.getElementById('m-pend').textContent=total-verif;document.getElementById('m-fotos').textContent=conFotos;document.getElementById('m-hall').textContent=hall;document.getElementById('m-valor').textContent=fmt(valor);
   const de=document.getElementById('dashEmpresas');
   if(!S.empresas.length)de.innerHTML='<div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">Crea una empresa.</div></div>';
-  else de.innerHTML=S.empresas.map(e=>{const act=S.activos.filter(a=>a.empresaId===e.id),v=act.filter(a=>a.verificado==='verificado').length,pct=act.length?Math.round(v/act.length*100):0;return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>${e.nombre}</span><span style="color:var(--text3)">${v}/${act.length} · ${pct}%</span></div><div class="pbar"><div class="pfill" style="width:${pct}%"></div></div></div>`;}).join('');
+  else de.innerHTML=S.empresas.map(e=>{const act=S.activos.filter(a=>!a.retirado&&a.empresaId===e.id),v=act.filter(a=>a.verificado==='verificado').length,pct=act.length?Math.round(v/act.length*100):0;return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>${e.nombre}</span><span style="color:var(--text3)">${v}/${act.length} · ${pct}%</span></div><div class="pbar"><div class="pfill" style="width:${pct}%"></div></div></div>`;}).join('');
   const da=document.getElementById('dashActividad');da.innerHTML=S.actividad.length?S.actividad.slice(-10).reverse().map(a=>`<div style="font-size:12px;color:var(--text2);padding:4px 0;border-bottom:.5px solid var(--border)">${a}</div>`).join(''):'<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Sin actividad.</div></div>';
-  const cats={};S.activos.forEach(a=>{cats[a.categoria]=(cats[a.categoria]||0)+1;});
+  const cats={};AV.forEach(a=>{cats[a.categoria]=(cats[a.categoria]||0)+1;});
   const dc=document.getElementById('dashCats');
   if(!Object.keys(cats).length)dc.innerHTML='<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Sin datos.</div></div>';
   else{const max=Math.max(...Object.values(cats));dc.innerHTML=Object.entries(cats).map(([c,n])=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px"><div style="font-size:12px;min-width:175px;color:var(--text2)">${c}</div><div style="flex:1;height:7px;background:var(--bg3);border-radius:999px;overflow:hidden"><div style="width:${Math.round(n/max*100)}%;height:100%;background:var(--accent);border-radius:999px"></div></div><div style="font-size:12px;font-weight:500;min-width:24px;text-align:right">${n}</div></div>`).join('');}
@@ -1014,7 +1100,7 @@ function refreshDashboard(){
 
 // ===== EXPORTAR =====
 function exportReporte(tipo){
-  const empId=document.getElementById('reporteEmpresa').value;let activos=empId?S.activos.filter(a=>a.empresaId===empId):S.activos;
+  const empId=document.getElementById('reporteEmpresa').value;let activos=S.activos.filter(a=>!a.retirado&&(!empId||a.empresaId===empId));
   let data=[],sn='Activo Fijo';
   if(tipo==='softland_levantamiento'){
     sn='Levantamiento AF';
@@ -1040,7 +1126,9 @@ function exportReporte(tipo){
         'Tipo/Categoria':a.categoria,
         'Tipo Softland':a.categoriaSoftland||'',
         'Serie / Modelo':a.serie||'',
-        'Ubicacion en Libros':a.ubicacion||'ND',
+        'Notas Softland (serie/motor/chasis)':a.notas||'',
+        'Responsable Softland':a.responsable||'',
+        'Ubicacion en Libros':a.ubicSoftland||a.ubicacion||'ND',
         'Ubicacion Verificada en Campo':a.ubicacion||'ND',
         'Custodio / Responsable':a.custodio||'',
         'Fecha Adquisicion':a.fechaAdq||'',
@@ -1063,8 +1151,8 @@ function exportReporte(tipo){
         'Empresa':emp2?.nombre||''
       };
     });
-  } else if(tipo==='inventario'){sn='Inventario';data=activos.map(a=>{const emp=S.empresas.find(e=>e.id===a.empresaId),vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5);return{'Empresa':emp?.nombre||'','Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Tipo Softland':a.categoriaSoftland||'','Serie':a.serie||'','Ubicación':a.ubicacion||'','Custodio':a.custodio||'','F.Adquisición':a.fechaAdq||'','Vida NIIF (años)':a.vidaUtil||5,'Vida Fiscal (meses)':a.vidaFiscal||0,'Costo ($)':a.costo||0,'Residual ($)':a.residual||0,'Dep.Anual NIIF ($)':parseFloat(fmtN(da)),'Dep.Acum NIIF ($)':parseFloat(fmtN((a.costo||0)-vl)),'Dep.Acum Libros ($)':a.depAcumLibros||0,'Valor Libros NIIF ($)':parseFloat(fmtN(vl)),'Estado':a.estado,'Verificado':a.verificado,'Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''};});}
-  else if(tipo==='levantamiento'){sn='Levantamiento';data=activos.map(a=>({'Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Empresa':S.empresas.find(e=>e.id===a.empresaId)?.nombre||'','Ubicación':a.ubicacion||'','Custodio':a.custodio||'','Estado Físico':a.estado,'Verificado':a.verificado,'Fecha Verif.':a.fechaVerif||'','Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''}));}
+  } else if(tipo==='inventario'){sn='Inventario';data=activos.map(a=>{const emp=S.empresas.find(e=>e.id===a.empresaId),vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5);return{'Empresa':emp?.nombre||'','Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Tipo Softland':a.categoriaSoftland||'','Serie':a.serie||'','Notas Softland':a.notas||'','Ubicación Softland':a.ubicSoftland||'','Ubicación Campo':a.ubicacion||'','Responsable Softland':a.responsable||'','Custodio':a.custodio||'','F.Adquisición':a.fechaAdq||'','Vida NIIF (años)':a.vidaUtil||5,'Vida Fiscal (meses)':a.vidaFiscal||0,'Costo ($)':a.costo||0,'Residual ($)':a.residual||0,'Dep.Anual NIIF ($)':parseFloat(fmtN(da)),'Dep.Acum NIIF ($)':parseFloat(fmtN((a.costo||0)-vl)),'Dep.Acum Libros ($)':a.depAcumLibros||0,'Valor Libros NIIF ($)':parseFloat(fmtN(vl)),'Estado':a.estado,'Verificado':a.verificado,'Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''};});}
+  else if(tipo==='levantamiento'){sn='Levantamiento';data=activos.map(a=>({'Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Empresa':S.empresas.find(e=>e.id===a.empresaId)?.nombre||'','Ubicación Softland':a.ubicSoftland||'','Ubicación Campo':a.ubicacion||'','Notas Softland':a.notas||'','Custodio':a.custodio||'','Estado Físico':a.estado,'Verificado':a.verificado,'Fecha Verif.':a.fechaVerif||'','Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''}));}
   else if(tipo==='depreciacion'){sn='Dep.NIIF';data=activos.map(a=>{const vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5);return{'Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Costo ($)':a.costo||0,'Residual ($)':a.residual||0,'Vida NIIF':a.vidaUtil||5,'Vida Fiscal (m)':a.vidaFiscal||0,'Dep.Anual NIIF ($)':parseFloat(fmtN(da)),'Dep.Acum NIIF ($)':parseFloat(fmtN((a.costo||0)-vl)),'Dep.Acum Libros ($)':a.depAcumLibros||0,'V.Libros NIIF ($)':parseFloat(fmtN(vl)),'Diferencia ($)':parseFloat(fmtN(vl-(a.costo||0)+(a.depAcumLibros||0)))};});}
   else if(tipo==='bajas'){sn='Bajas';data=activos.filter(a=>a.estado==='baja'||a.estado==='faltante'||a.estado==='malo').map(a=>({'Código':a.codigo,'Descripción':a.descripcion,'Estado':a.estado,'Costo ($)':a.costo||0,'V.Libros ($)':parseFloat(fmtN(calcVL(a))),'Dep.Acum Libros ($)':a.depAcumLibros||0,'Observaciones':a.obs||'','Ref.NIIF':'Sec.17.25 / IAS 16.67'}));}
   else if(tipo==='hallazgos'){
@@ -1105,8 +1193,51 @@ function testDriveConnection(){
   s.onerror=()=>document.getElementById('cfgDriveStatus').innerHTML='<span style="color:var(--danger)">✕ No se pudo cargar API Google. Verifica internet.</span>';
   document.head.appendChild(s);
 }
-function exportarBackup(){const data=JSON.stringify({empresas:S.empresas,activos:S.activos,actividad:S.actividad,fotos:S.fotos,ts:new Date().toISOString()},null,2);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=`ActivaERP_backup_${new Date().toISOString().slice(0,10)}.json`;a.click();log('Backup exportado');}
-function importarBackup(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const p=JSON.parse(ev.target.result);if(confirm(`Importar: ${(p.empresas||[]).length} empresas, ${(p.activos||[]).length} activos. ¿Reemplazar datos actuales?`)){S.empresas=p.empresas||[];S.activos=p.activos||[];S.actividad=p.actividad||[];S.fotos=p.fotos||{};saveState();refreshSelects();refreshDashboard();alert('✓ Backup importado.');}}catch(err){alert('✕ Archivo inválido.');}};r.readAsText(f);}
+function exportarBackup(){const data=JSON.stringify({empresas:S.empresas,activos:S.activos,actividad:S.actividad,fotos:S.fotos,ts:new Date().toISOString()});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));const _d=new Date();a.download=`ActivaERP_backup_${_d.toISOString().slice(0,10)}_${String(_d.getHours()).padStart(2,'0')}h${String(_d.getMinutes()).padStart(2,'0')}.json`;a.click();log('Backup exportado');}
+function tCampo(a){const x=[a.fechaMod,a.fechaVerif].filter(Boolean).map(v=>new Date(v).getTime()||0);return x.length?Math.max(...x):0;}
+function mergeActivo(cur,inc){
+  const out={...cur};
+  if((inc.fechaSoftland||'')>(cur.fechaSoftland||''))SOFT_FIELDS.forEach(f=>{if(inc[f]!==undefined)out[f]=inc[f];});
+  else SOFT_FIELDS.forEach(f=>{if(out[f]===undefined&&inc[f]!==undefined)out[f]=inc[f];});
+  if((inc.fechaSoftland||'')>(cur.fechaSoftland||'')&&inc.categoria&&inc.categoria!=='Otro')out.categoria=inc.categoria;
+  if(tCampo(inc)>tCampo(cur))CAMPO_FIELDS.forEach(f=>{if(inc[f]!==undefined)out[f]=inc[f];});
+  if(cur.verificado==='verificado'&&inc.verificado!=='verificado'&&tCampo(inc)<=tCampo(cur))out.verificado='verificado';
+  return out;
+}
+function importarBackup(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const p=JSON.parse(ev.target.result);e.target.value='';
+  const nEmp=(p.empresas||[]).length,nAct=(p.activos||[]).length,nVer=(p.activos||[]).filter(a=>a.verificado==='verificado').length;
+  const fusion=confirm(`Backup: ${nEmp} empresa(s), ${nAct} activos (${nVer} verificados).\n\nACEPTAR = FUSIONAR con lo que ya tienes en este dispositivo (recomendado: conserva lo más reciente de cada activo).\n\nCANCELAR = ver la opción de REEMPLAZAR.`);
+  if(!fusion){if(!confirm('¿REEMPLAZAR todo lo de este dispositivo por el contenido del backup?\n\nLo que no esté en el backup se perderá.'))return;
+    applyState(p);S._fotoSig=null;log('Backup restaurado (reemplazo)');saveState();S._ubicEmp=null;refreshSelects();refreshDashboard();renderActivos();
+    alert(`✓ Datos reemplazados: ${S.activos.length} activos, ${S.empresas.length} empresa(s).`);return;}
+  (p.empresasEliminadas||[]).forEach(id=>{S.empresas=S.empresas.filter(x=>x.id!==id);S.activos=S.activos.filter(a=>{if(a.empresaId===id){delete S.fotos[a.id];return false;}return true;});});
+  (p.empresas||[]).forEach(e2=>{const i=S.empresas.findIndex(e1=>e1.id===e2.id);if(i===-1)S.empresas.push(e2);else S.empresas[i]={...S.empresas[i],...e2};});
+  const byId={},byCod={};S.activos.forEach((a,i)=>{byId[a.id]=i;byCod[a.empresaId+'|'+String(a.codigo).trim()]=i;});
+  let nuevos=0,fus=0;const remap={};
+  (p.activos||[]).forEach(a2=>{
+    if(a2.fechaAdq)a2.fechaAdq=fixFecha(a2.fechaAdq);
+    let i=byId[a2.id];if(i===undefined){i=byCod[a2.empresaId+'|'+String(a2.codigo).trim()];if(i!==undefined)remap[a2.id]=S.activos[i].id;}
+    if(i===undefined){S.activos.push(a2);byId[a2.id]=S.activos.length-1;byCod[a2.empresaId+'|'+String(a2.codigo).trim()]=S.activos.length-1;nuevos++;}
+    else{S.activos[i]=mergeActivo(S.activos[i],a2);fus++;}
+  });
+  Object.keys(p.fotos||{}).forEach(id0=>{const id=remap[id0]||id0;
+    if(!S.fotos[id]) S.fotos[id]=[];
+    (p.fotos[id0]||[]).forEach(f2=>{ if(!S.fotos[id].some(f1=>f1.data===f2.data)) S.fotos[id].push(f2); });
+  });
+  const seen=new Set(S.actividad);(p.actividad||[]).forEach(x=>{if(!seen.has(x))S.actividad.push(x);});S.actividad=S.actividad.slice(-60);
+  log(`Backup fusionado: ${fus} actualizados, ${nuevos} nuevos`);saveState();S._ubicEmp=null;refreshSelects();refreshDashboard();renderActivos();
+  const vig=S.activos.filter(a=>!a.retirado),ver=vig.filter(a=>a.verificado==='verificado').length;
+  alert(`✓ Backup fusionado\n\n• ${fus} activos combinados, ${nuevos} nuevos\n• ${vig.length} activos vigentes, ${ver} verificados\n• ${S.empresas.length} empresa(s)`);
+  }catch(err){alert('✕ Archivo inválido: '+err.message);}};r.readAsText(f);}
+function liberarFotosRespaldadas(){
+  const totalFotos=Object.values(S.fotos).reduce((s,f)=>s+f.length,0);
+  if(totalFotos===0){alert('No hay fotos guardadas localmente en este momento.');return;}
+  if(!confirm(`Esto borrará ${totalFotos} foto(s) guardadas en este dispositivo (los datos de activos NO se tocan). Úsalo solo después de exportar un backup reciente. ¿Ya exportaste tu backup?`))return;
+  S.fotos={};
+  saveState();
+  alert('✓ Fotos liberadas. Sigue levantando — ya están respaldadas en tu último backup exportado.');
+  refreshConfig();refreshDashboard();
+}
 function limpiarTodo(){if(confirm('¿ELIMINAR TODOS los datos? No se puede deshacer.')){S.empresas=[];S.activos=[];S.actividad=[];S.fotos={};saveState();location.reload();}}
 
 // ===== HELPERS =====
@@ -1124,7 +1255,7 @@ function generarInformeWord(){
   const empId = document.getElementById('reporteEmpresa').value;
   const emp = empId ? S.empresas.find(e=>e.id===empId) : S.empresas[0];
   if(!emp){ alert('Selecciona una empresa para generar el informe.'); return; }
-  const activos = S.activos.filter(a=>a.empresaId===emp.id);
+  const activos = S.activos.filter(a=>!a.retirado&&a.empresaId===emp.id);
   if(!activos.length){ alert('La empresa no tiene activos registrados.'); return; }
 
   // Calcular estadisticas
@@ -1410,7 +1541,7 @@ function generarReporteLevantamiento(){
   const empId = document.getElementById('reporteEmpresa').value;
   const emp = empId ? S.empresas.find(e=>e.id===empId) : S.empresas[0];
   if(!emp){ alert('Selecciona una empresa para generar el reporte.'); return; }
-  const activos = S.activos.filter(a=>a.empresaId===emp.id);
+  const activos = S.activos.filter(a=>!a.retirado&&a.empresaId===emp.id);
   if(!activos.length){ alert('La empresa no tiene activos registrados.'); return; }
 
   const hoy = new Date().toLocaleDateString('es-SV',{day:'2-digit',month:'2-digit',year:'numeric'});
@@ -1672,20 +1803,7 @@ document.getElementById('depFechaCorte').value=new Date().toISOString().slice(0,
 document.getElementById('depFechaAdq').value='2020-01-01';
 refreshSelects();refreshDashboard();renderActivos();calcDep();autoVidaUtil();
 
-// DEMO con datos reales del cliente Softland
-if(!S.empresas.length){
-  S.empresas=[{id:'demo1',nombre:'Cliente Demo (Datos Softland)',nit:'0614-150190-001-4',nrc:'123456-7',giro:'Distribución y comercio',niif:'pymes',fechaCorte:'2025-12-31',contacto:'Lic. María García',fechaLev:'2025-07-15',obs:'Levantamiento activo con datos reales Softland',creado:new Date().toISOString()}];
-  [{codigo:'1354',descripcion:'EXTINTOR DE 125 LBS',categoria:'Herramientas y accesorios',ubicacion:'PLANTA',costo:1698,depAcumLibros:1698,vidaUtil:5,vidaFiscal:60,estado:'regular',obs:'Completamente depreciado — verificar si sigue operativo'},
-   {codigo:'2264',descripcion:'COMPUTADORA LAPTOP MACBOOK PRO COLOR NEGRO',categoria:'Equipo de cómputo',ubicacion:'INFORM',costo:2434.84,depAcumLibros:0,vidaUtil:4,vidaFiscal:24,estado:'bueno',obs:'Dif. temporal: fiscal 2a vs NIIF 4a'},
-   {codigo:'2265',descripcion:'ANDAMIO GALVANIZADO CON RODOS P/TRABAJO',categoria:'Maquinaria y equipo',ubicacion:'ND',costo:752.21,depAcumLibros:0,vidaUtil:10,vidaFiscal:60,estado:'bueno',obs:'Sin ubicación — identificar en campo'},
-   {codigo:'2260',descripcion:'ESCRITORIO EN L COLOR BLANCO DE 1.50M',categoria:'Mobiliario y equipo de oficina',ubicacion:'OFADM',costo:578.05,depAcumLibros:0,vidaUtil:8,vidaFiscal:36,estado:'bueno',obs:''},
-   {codigo:'1391',descripcion:'BASCULA MARCA WEIGH TRONIX MOD DSL4848',categoria:'Maquinaria y equipo',ubicacion:'RYD',costo:2168.14,depAcumLibros:2168.14,vidaUtil:10,vidaFiscal:60,estado:'malo',obs:'Mal estado — evaluar deterioro IAS 36/Sec.27'},
-   {codigo:'2266',descripcion:'MOTOGUADAÑA TRIMMER 1.8 HP FS120',categoria:'Maquinaria y equipo',ubicacion:'AVERD',costo:381.83,depAcumLibros:0,vidaUtil:5,vidaFiscal:36,estado:'bueno',obs:''},
-   {codigo:'1396',descripcion:'MANGUERA 1 1/2 X 100 TIPO P/BOMBERO',categoria:'Herramientas y accesorios',ubicacion:'BREP',costo:165.39,depAcumLibros:165.39,vidaUtil:5,vidaFiscal:24,estado:'bueno',obs:'Completamente depreciada'},
-   {codigo:'1394',descripcion:'MANTENEDOR DE BATERIA P/PLANTA ELECTRICA',categoria:'Maquinaria y equipo',ubicacion:'CMAQ',costo:2453.91,depAcumLibros:2453.91,vidaUtil:10,vidaFiscal:60,estado:'bueno',obs:'Completamente depreciado pero en uso — Sec.17.22'}
-  ].forEach(d=>S.activos.push({id:uid(),empresaId:'demo1',serie:'',custodio:'',residual:0,fechaAdq:'2019-01-01',metodo:'lineal',verificado:'pendiente',fechaMod:new Date().toISOString(),...d}));
-  log('Sistema iniciado con datos reales del cliente Softland');saveState();refreshSelects();refreshDashboard();renderActivos();
-}
+bootStorage();
 </script>
 
 <script>
