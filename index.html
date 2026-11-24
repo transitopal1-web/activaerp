@@ -610,7 +610,7 @@ const fixFecha=v=>{if(v===null||v===undefined||v==='')return '';if(v instanceof 
 const esc=s=>String(s===null||s===undefined?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SOFT_FIELDS=['descripcion','categoriaSoftland','ubicSoftland','notas','responsable','proveedor','codBarras','fechaAdq','fechaActiv','retirado','fechaRetiro','costo','depAcumLibros','vidaFiscal','fechaSoftland'];
 const CAMPO_FIELDS=['ubicacion','custodio','estado','obs','verificado','fechaVerif','serie','fechaMod','vidaUtil','residual','metodo'];
-function applyState(p){S.empresas=p.empresas||[];S.activos=(p.activos||[]).map(a=>{if(a.fechaAdq)a.fechaAdq=fixFecha(a.fechaAdq);return a;});S.actividad=p.actividad||[];S.fotos=p.fotos||{};S.drive=p.drive||S.drive;}
+function applyState(p){S.empresas=p.empresas||[];const _seen=new Set();S.activos=(p.activos||[]).map(a=>{if(a.fechaAdq)a.fechaAdq=fixFecha(a.fechaAdq);if(_seen.has(a.id))a.id=Date.now().toString(36)+Math.random().toString(36).slice(2,12);_seen.add(a.id);return a;});S.actividad=p.actividad||[];S.fotos=p.fotos||{};S.drive=p.drive||S.drive;}
 function loadState(){try{const s=localStorage.getItem(LS_KEY);if(s)applyState(JSON.parse(s));}catch(e){}}
 // IndexedDB: mucho más espacio que localStorage (5 MB)
 let _db=null;S._ready=false;S._fotoSig=null;
@@ -637,7 +637,7 @@ function bootStorage(){
     if(document.getElementById('view-empresas').classList.contains('active'))renderEmpresas();
   }).catch(()=>{S._ready=true;});
 }
-const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,6);
 const fmt=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n||0);
 const fmtN=n=>parseFloat(n||0).toFixed(2);
 const VIDA_NIIF={'Edificios e instalaciones':30,'Maquinaria y equipo':10,'Vehículos':5,'Equipo de cómputo':4,'Mobiliario y equipo de oficina':8,'Herramientas y accesorios':5,'Mejoras a propiedades':10,'Otro':5};
@@ -1216,8 +1216,8 @@ function importarBackup(e){const f=e.target.files[0];if(!f)return;const r=new Fi
   let nuevos=0,fus=0;const remap={};
   (p.activos||[]).forEach(a2=>{
     if(a2.fechaAdq)a2.fechaAdq=fixFecha(a2.fechaAdq);
-    let i=byId[a2.id];if(i===undefined){i=byCod[a2.empresaId+'|'+String(a2.codigo).trim()];if(i!==undefined)remap[a2.id]=S.activos[i].id;}
-    if(i===undefined){S.activos.push(a2);byId[a2.id]=S.activos.length-1;byCod[a2.empresaId+'|'+String(a2.codigo).trim()]=S.activos.length-1;nuevos++;}
+    let i=byId[a2.id];if(i!==undefined&&(S.activos[i].empresaId!==a2.empresaId||String(S.activos[i].codigo).trim()!==String(a2.codigo).trim())){i=undefined;}if(i===undefined){i=byCod[a2.empresaId+'|'+String(a2.codigo).trim()];if(i!==undefined)remap[a2.id]=S.activos[i].id;}
+    if(i===undefined){if(byId[a2.id]!==undefined)a2={...a2,id:uid()};S.activos.push(a2);byId[a2.id]=S.activos.length-1;byCod[a2.empresaId+'|'+String(a2.codigo).trim()]=S.activos.length-1;nuevos++;}
     else{S.activos[i]=mergeActivo(S.activos[i],a2);fus++;}
   });
   Object.keys(p.fotos||{}).forEach(id0=>{const id=remap[id0]||id0;
