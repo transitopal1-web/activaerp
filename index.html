@@ -268,7 +268,7 @@ mark{background:#FFE066;color:inherit;padding:0 1px;border-radius:2px}
   <div class="srow no-print">
     <select id="campoEmpresa" onchange="S._ubicEmp=null;S.campoN=50;document.getElementById('campoUbic').value='';renderCampo()" style="flex:1;min-width:160px"><option value="">Selecciona empresa...</option></select>
     <select id="campoFiltro" onchange="S.campoN=50;renderCampo()" style="max-width:170px">
-      <option value="pendiente" selected>Pendientes</option><option value="verificado">Verificados</option><option value="">Todos (vigentes)</option><option value="retirado">Retirados en Softland</option>
+      <option value="pendiente" selected>Pendientes</option><option value="verificado">Verificados</option><option value="">Todos (vigentes)</option><option value="sinserie_ver">⚠ Verificados SIN serie (regresar)</option><option value="sinserie">⚠ Falta serie (todos)</option><option value="retirado">Retirados en Softland</option>
     </select>
     <select id="campoUbic" onchange="S.campoN=50;renderCampo()" style="flex:1;min-width:160px"><option value="">Todas las ubicaciones</option></select>
     <input type="search" id="campoBuscar" placeholder="🔎 Código, descripción, serie, motor, chasis, marca, ubicación..." oninput="S.campoN=50;clearTimeout(S._cbT);S._cbT=setTimeout(renderCampo,200)" style="flex:1 1 100%;width:100%;max-width:none;min-width:0;font-size:15px">
@@ -812,6 +812,17 @@ function editActivo(id){
 function eliminarActivo(id){if(!confirm('¿Eliminar?'))return;S.activos=S.activos.filter(a=>a.id!==id);delete S.fotos[id];saveState();renderActivos();refreshDashboard();}
 
 // ===== CAMPO =====
+const TIPOS_SERIE=new Set(['COMP','COMU','EQUI','MAQU','EQUA','MAQA','EQCA','VDCA','VEHI','VEH1','VEH2','CAM','HYEP']);
+const CATS_SERIE=new Set(['Equipo de cómputo','Maquinaria y equipo','Vehículos']);
+const KW_SERIE=/SERIE|SERIAL|S\/N|\bSN\b|CHASIS|CHASSIS|\bVIN\b|PLACA|MOTOR\s*:/i;
+function requiereSerie(a){return a.categoriaSoftland?TIPOS_SERIE.has(a.categoriaSoftland):CATS_SERIE.has(a.categoria);}
+function tieneSerie(a){return !!String(a.serie||'').trim()||KW_SERIE.test((a.notas||'')+' '+(a.descripcion||''));}
+function faltaSerie(a){return requiereSerie(a)&&!tieneSerie(a);}
+const STOP=new Set(['DE','DEL','LA','EL','LOS','LAS','Y','CON','PARA','TIPO','MARCA','MOD','EN','P/']);
+function normTxt(s){return String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/(\d)[,.](\d{3})(?!\d)/g,'$1$2').replace(/(\d+)\s*K\s*(BTU)?\b/g,(m,n)=>n+'000 BTU ').replace(/[^A-Z0-9/#\-. ]/g,' ');}
+const compact=s=>s.replace(/[\s\-./#]/g,'');
+function tokensBusqueda(q){return [...new Set(normTxt(q).split(/\s+/).filter(w=>w&&!STOP.has(w)))];}
+function scoreBusqueda(a,toks){const t=normTxt(`${a.codigo} ${a.descripcion} ${a.notas||''} ${a.ubicSoftland||''} ${a.ubicacion||''} ${a.custodio||''} ${a.serie||''} ${a.proveedor||''} ${a.responsable||''} ${a.obs||''}`),c=compact(t);let n=0;toks.forEach(w=>{if(t.includes(w)||(w.length>=4&&c.includes(compact(w))))n++;});return n;}
 function campoUbicOpts(empId){
   const sel=document.getElementById('campoUbic');if(!sel)return;
   if(S._ubicEmp===empId&&sel.options.length>1){return;}
@@ -849,14 +860,18 @@ function renderCampo(){
   let lista=filtro==='retirado'?base.filter(a=>a.retirado):base.filter(a=>!a.retirado);
   if(filtro==='pendiente')lista=lista.filter(a=>a.verificado!=='verificado');
   if(filtro==='verificado')lista=lista.filter(a=>a.verificado==='verificado');
+  if(filtro==='sinserie_ver')lista=lista.filter(a=>a.verificado==='verificado'&&faltaSerie(a));
+  if(filtro==='sinserie')lista=lista.filter(a=>faltaSerie(a));
   if(ubicF)lista=lista.filter(a=>(a.ubicSoftland||a.ubicacion||'(sin ubicación)')===ubicF);
-  if(buscar){const ws=buscar.split(/\s+/);lista=lista.filter(a=>{const t=`${a.codigo} ${a.descripcion} ${a.notas||''} ${a.ubicSoftland||''} ${a.ubicacion||''} ${a.custodio||''} ${a.serie||''} ${a.proveedor||''} ${a.responsable||''} ${a.obs||''}`.toLowerCase();return ws.every(w=>t.includes(w));});}
+  let parcial=false;
+  if(buscar){const toks=tokensBusqueda(buscar);if(toks.length){const sc=lista.map(a=>[a,scoreBusqueda(a,toks)]);const exact=sc.filter(x=>x[1]===toks.length).map(x=>x[0]);
+    if(exact.length)lista=exact;else{const min=Math.max(1,Math.ceil(toks.length/2));lista=sc.filter(x=>x[1]>=min).sort((x,y)=>y[1]-x[1]).map(x=>x[0]);parcial=true;}}}
   const vig=base.filter(a=>!a.retirado),total=vig.length,verif=vig.filter(a=>a.verificado==='verificado').length,pct=total?Math.round(verif/total*100):0;
   stats.style.display='block';document.getElementById('cs-total').textContent=total;document.getElementById('cs-verif').textContent=verif;document.getElementById('cs-pend').textContent=total-verif;document.getElementById('cs-bar').style.width=pct+'%';
   if(!lista.length){c.innerHTML='<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No hay activos en esta vista.</div></div>';return;}
   const N=S.campoN||50,vis=lista.slice(0,N);
   const sbc={bueno:'badge-green',regular:'badge-amber',malo:'badge-red',baja:'badge-red',faltante:'badge-red',nuevo:'badge-purple'};
-  c.innerHTML=`<div style="font-size:12px;color:var(--text3);margin:0 0 8px">${lista.length} activo(s) en esta vista${lista.length>N?` · mostrando ${N}`:''}</div>`+vis.map(a=>{
+  c.innerHTML=(parcial?`<div class="alert alert-warn" style="margin-bottom:8px">No hay coincidencia exacta. Te muestro los <b>más parecidos</b> (los que cumplen más palabras primero).</div>`:'')+(filtro==='sinserie_ver'?`<div class="alert alert-info" style="margin-bottom:8px">Activos que ya verificaste pero les falta la serie. Regresa a cada uno, toma foto de la viñeta y anota la serie en <b>Detalles</b>.</div>`:'')+`<div style="font-size:12px;color:var(--text3);margin:0 0 8px">${lista.length} activo(s) en esta vista${lista.length>N?` · mostrando ${N}`:''}</div>`+vis.map(a=>{
     const nf=(S.fotos[a.id]||[]).length,ok=a.verificado==='verificado';
     return `<div class="campo-card" id="cc_${a.id}"${ok?' style="border-left:4px solid var(--success)"':''}>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
@@ -865,6 +880,7 @@ function renderCampo(){
         <span class="badge ${sbc[a.estado]||'badge-blue'}">${esc(a.estado)}</span>
         ${nf>0?`<span class="badge badge-purple">📸${nf}</span>`:''}
         ${a.retirado?'<span class="badge badge-red">RETIRADO</span>':''}
+        ${faltaSerie(a)?'<span class="badge badge-amber">⚠ Falta serie</span>':''}
       </div>
       <div style="font-size:15px;font-weight:600;line-height:1.3">${hl(a.descripcion,buscar)}</div>
       ${campoDetalle(a,buscar)}
@@ -876,7 +892,7 @@ function renderCampo(){
     </div>`;
   }).join('')+(lista.length>N?`<button class="btn campo-more" onclick="S.campoN=(S.campoN||50)+50;renderCampo()">Mostrar 50 más (${lista.length-N} restantes)</button>`:'');
 }
-function verificarRapido(id){const a=S.activos.find(x=>x.id===id);if(!a)return;a.verificado='verificado';a.fechaVerif=new Date().toISOString();a.fechaMod=a.fechaVerif;log('Verificado: '+a.codigo+' '+a.descripcion);saveState();S._ubicEmp=null;renderCampo();refreshDashboard();}
+function verificarRapido(id){const a=S.activos.find(x=>x.id===id);if(!a)return;if(faltaSerie(a)&&confirm('Este equipo debería llevar NÚMERO DE SERIE y no lo tiene.\n\nACEPTAR = abrir Detalles para anotar la serie (recomendado)\nCANCELAR = verificar sin serie')){abrirCampoModal(id);setTimeout(()=>{const s=document.getElementById('cfSerie');if(s){s.focus();s.scrollIntoView({block:'center'});}},300);return;}a.verificado='verificado';a.fechaVerif=new Date().toISOString();a.fechaMod=a.fechaVerif;log('Verificado: '+a.codigo+' '+a.descripcion);saveState();S._ubicEmp=null;renderCampo();refreshDashboard();}
 function abrirCampoModal(id){
   const a=S.activos.find(x=>x.id===id);if(!a)return;
   const fotos=S.fotos[id]||[];
@@ -892,7 +908,7 @@ function abrirCampoModal(id){
     </div>
     <div class="form-row">
       <div class="fg"><label>Custodio verificado</label><input type="text" id="cfCustodio" value="${esc(a.custodio||'')}"></div>
-      <div class="fg"><label>Serie / placa vista en campo</label><input type="text" id="cfSerie" value="${esc(a.serie||'')}" placeholder="Si difiere o no está en notas"></div>
+      <div class="fg"><label>Serie / placa vista en campo ${faltaSerie(a)?'<span style="color:#B7791F;font-weight:600">⚠ requerida</span>':''}</label><input type="text" id="cfSerie" value="${esc(a.serie||'')}" placeholder="${faltaSerie(a)?'Busca la viñeta: S/N, Serial No., Serie':'Si difiere o no está en notas'}"${faltaSerie(a)?' style="border:2px solid #E0B040;background:#FFFBEA"':''}></div>
     </div>
     <div class="fg"><label>Observaciones de campo</label><textarea id="cfObs" rows="2">${esc(a.obs||'')}</textarea></div>
     <div style="margin-top:14px">
@@ -1127,6 +1143,7 @@ function exportReporte(tipo){
         'Tipo Softland':a.categoriaSoftland||'',
         'Serie / Modelo':a.serie||'',
         'Notas Softland (serie/motor/chasis)':a.notas||'',
+        'Serie Pendiente':faltaSerie(a)?'SI':'NO',
         'Responsable Softland':a.responsable||'',
         'Ubicacion en Libros':a.ubicSoftland||a.ubicacion||'ND',
         'Ubicacion Verificada en Campo':a.ubicacion||'ND',
@@ -1151,7 +1168,7 @@ function exportReporte(tipo){
         'Empresa':emp2?.nombre||''
       };
     });
-  } else if(tipo==='inventario'){sn='Inventario';data=activos.map(a=>{const emp=S.empresas.find(e=>e.id===a.empresaId),vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5);return{'Empresa':emp?.nombre||'','Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Tipo Softland':a.categoriaSoftland||'','Serie':a.serie||'','Notas Softland':a.notas||'','Ubicación Softland':a.ubicSoftland||'','Ubicación Campo':a.ubicacion||'','Responsable Softland':a.responsable||'','Custodio':a.custodio||'','F.Adquisición':a.fechaAdq||'','Vida NIIF (años)':a.vidaUtil||5,'Vida Fiscal (meses)':a.vidaFiscal||0,'Costo ($)':a.costo||0,'Residual ($)':a.residual||0,'Dep.Anual NIIF ($)':parseFloat(fmtN(da)),'Dep.Acum NIIF ($)':parseFloat(fmtN((a.costo||0)-vl)),'Dep.Acum Libros ($)':a.depAcumLibros||0,'Valor Libros NIIF ($)':parseFloat(fmtN(vl)),'Estado':a.estado,'Verificado':a.verificado,'Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''};});}
+  } else if(tipo==='inventario'){sn='Inventario';data=activos.map(a=>{const emp=S.empresas.find(e=>e.id===a.empresaId),vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5);return{'Empresa':emp?.nombre||'','Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Tipo Softland':a.categoriaSoftland||'','Serie':a.serie||'','Serie Pendiente':faltaSerie(a)?'SI':'NO','Notas Softland':a.notas||'','Ubicación Softland':a.ubicSoftland||'','Ubicación Campo':a.ubicacion||'','Responsable Softland':a.responsable||'','Custodio':a.custodio||'','F.Adquisición':a.fechaAdq||'','Vida NIIF (años)':a.vidaUtil||5,'Vida Fiscal (meses)':a.vidaFiscal||0,'Costo ($)':a.costo||0,'Residual ($)':a.residual||0,'Dep.Anual NIIF ($)':parseFloat(fmtN(da)),'Dep.Acum NIIF ($)':parseFloat(fmtN((a.costo||0)-vl)),'Dep.Acum Libros ($)':a.depAcumLibros||0,'Valor Libros NIIF ($)':parseFloat(fmtN(vl)),'Estado':a.estado,'Verificado':a.verificado,'Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''};});}
   else if(tipo==='levantamiento'){sn='Levantamiento';data=activos.map(a=>({'Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Empresa':S.empresas.find(e=>e.id===a.empresaId)?.nombre||'','Ubicación Softland':a.ubicSoftland||'','Ubicación Campo':a.ubicacion||'','Notas Softland':a.notas||'','Custodio':a.custodio||'','Estado Físico':a.estado,'Verificado':a.verificado,'Fecha Verif.':a.fechaVerif||'','Fotos':(S.fotos[a.id]||[]).length,'Observaciones':a.obs||''}));}
   else if(tipo==='depreciacion'){sn='Dep.NIIF';data=activos.map(a=>{const vl=calcVL(a),da=((a.costo||0)-(a.residual||0))/(a.vidaUtil||5);return{'Código':a.codigo,'Descripción':a.descripcion,'Categoría':a.categoria,'Costo ($)':a.costo||0,'Residual ($)':a.residual||0,'Vida NIIF':a.vidaUtil||5,'Vida Fiscal (m)':a.vidaFiscal||0,'Dep.Anual NIIF ($)':parseFloat(fmtN(da)),'Dep.Acum NIIF ($)':parseFloat(fmtN((a.costo||0)-vl)),'Dep.Acum Libros ($)':a.depAcumLibros||0,'V.Libros NIIF ($)':parseFloat(fmtN(vl)),'Diferencia ($)':parseFloat(fmtN(vl-(a.costo||0)+(a.depAcumLibros||0)))};});}
   else if(tipo==='bajas'){sn='Bajas';data=activos.filter(a=>a.estado==='baja'||a.estado==='faltante'||a.estado==='malo').map(a=>({'Código':a.codigo,'Descripción':a.descripcion,'Estado':a.estado,'Costo ($)':a.costo||0,'V.Libros ($)':parseFloat(fmtN(calcVL(a))),'Dep.Acum Libros ($)':a.depAcumLibros||0,'Observaciones':a.obs||'','Ref.NIIF':'Sec.17.25 / IAS 16.67'}));}
